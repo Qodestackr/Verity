@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+
+import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+
+export async function GET() {
+  try {
+    const session = await auth.api.getSession({
+      headers: headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const activeOrganizationId = session.user.activeOrganizationId;
+
+    // Get the current open till for this organization
+    const till = await prisma.till.findFirst({
+      where: {
+        organizationId: activeOrganizationId,
+        status: "OPEN",
+      },
+      orderBy: {
+        openedAt: "desc",
+      },
+    });
+
+    if (!till) {
+      return NextResponse.json(
+        { message: "No open till found" },
+        { status: 200 }
+      );
+    }
+
+    // Get recent transactions
+    const transactions = await prisma.tillTransaction.findMany({
+      where: {
+        tillId: till.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 10,
+    });
+
+    // Get sales summary
+    const sales = await getTillSalesSummary(till.id);
+
+    return NextResponse.json({ till, transactions, sales }, { status: 200 });
+  } catch (error) {
+    console.error("Error getting current till:", error);
+    return NextResponse.json(
+      { error: "Failed to get current till" },
+      { status: 500 }
+    );
+  }
+}

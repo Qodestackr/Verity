@@ -1,0 +1,146 @@
+model Organization {
+  id                     String                   @id @default(cuid())
+  name                   String
+  slug                   String                   @unique
+  description            String?
+  logo                   String?
+  businessType           BusinessType             @default(RETAILER)
+  licenseNumber          String?
+  taxId                  String?
+  phoneNumber            String?
+  enableSMS              Boolean                  @default(true)
+  settings               Json?                    @default("{}")
+  city                   String?
+  address                String?
+  subscriptionPlanId     String?
+  paymentMethod          PaymentMethodType        @default(MPESA)
+  metadata               Json?                    @default("{}")
+  onboardingComplete     Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  salesTier              SalesTier                @default(BRONZE)
+  creditLimit            Float                    @default(0)
+  paymentTerms           Int                      @default(0)
+  lastOrderDate          DateTime?
+  totalLifetimeValue     Float                    @default(0)
+  primaryLocationId      String?
+  deliveryZoneId         String?
+  aIConfiguration        AIConfiguration?
+  aIInsight              AIInsight[]
+  aIModelMetrics         AIModelMetrics[]
+  analyticsSnapshot      AnalyticsSnapshot[]
+  bartenderShifts        BartenderShift[]
+  billingContact         BillingContact?
+  budgets                Budget[]
+  forecasts              BudgetForecast[]
+  scenarios              BudgetScenario[]
+  businessDocument       BusinessDocument[]
+  businessProfile        BusinessProfile?
+  requestedRelationships BusinessRelationship[]   @relation("RequestedRelationships")
+  receivedRelationships  BusinessRelationship[]   @relation("ReceivedRelationships")
+  campaigns              Campaign[]
+  connectionRequests     ConnectionRequest[]
+  conversationalOrder    ConversationalOrder[]
+  customers              Customer[]
+  deliveries             Delivery[]
+  deliveryRoutes         DeliveryRoute[]
+  drivers                Driver[]
+  events                 Event[]
+  eventStream            EventStream[]
+  expenses               Expense[]
+  expenseCategories      ExpenseCategory[]
+  financialAccount       FinancialAccount[]
+  financialEntries       FinancialEntry[]
+  fiscalPeriod           FiscalPeriod[]
+  invitations            Invitation[]
+  invoices               Invoice[]
+  members                Member[]
+  onboardingPreference   OnboardingPreference?
+  orders                 Order[]
+  deliveryZone           DeliveryZone?            @relation(fields: [deliveryZoneId], references: [id])
+  primaryLocation        GeoLocation?             @relation(fields: [primaryLocationId], references: [id])
+  subscriptionPlan       SubscriptionPlan?        @relation(fields: [subscriptionPlanId], references: [id])
+  outlets                Outlet[]
+  posDailyReports        POSDailyReport[]
+  posProducts            POSProduct[]
+  posTills               POSTill[]
+  posTransactions        POSTransaction[]
+  paymentIntents         PaymentIntent[]
+  paymentMethods         PaymentMethodDetails[]
+  permissions            Permission[]
+  priceVisibility        PriceVisibility[]
+  pricingRule            PricingRule[]
+  productVisibility      ProductVisibility[]
+  purchases              Purchase[]
+  quickbooks             QuickBooksIntegration?
+  realTimeMetrics        RealTimeMetrics[]
+  saleorChannels         SaleorChannel[]
+  salesRepPerformance    SalesRepPerformance[]
+  salesTerritory         SalesTerritory[]
+  shiftSummaries         ShiftSummary[]
+  subscription           Subscription?
+  vendors                Vendor[]
+  visibilitySettings     VisibilitySettings?
+  vouchers               Voucher[]
+  walletPromotions       WalletPromotion[]
+  warehouses             Warehouse[]
+  syncStatuses           OrganizationSyncStatus[]
+  webhookConfiguration WebhookConfiguration[]
+  whatsAppContact      WhatsAppContact[]      @relation("ContactOrg")
+  whatsAppIntegration  WhatsAppIntegration?
+  whatsappMessages     WhatsAppMessage[]      @relation("MessageOrg")
+  
+  // Reconciliation relations
+  reconciliationEntries  ReconciliationEntry[]
+
+  @@index([businessType, salesTier])
+  @@index([primaryLocationId])
+}
+
+model Permission {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        Member[]     @relation("MemberToPermission")
+
+  @@unique([name, organizationId])
+}
+
+model Member {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions    Permission[] @relation("MemberToPermission")
+
+  @@unique([userId, organizationId])
+}
+
+model Invitation {
+  id             String       @id @default(cuid())
+  email          String
+  inviterId      String
+  organizationId String
+  role           String
+  status         String
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+enum BusinessType {
+  RETAILER
+  WHOLESALER
+  DISTRIBUTOR
+  BRAND_OWNER
+  OTHER
+}

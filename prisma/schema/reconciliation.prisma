@@ -1,0 +1,125 @@
+// Unified Reconciliation System
+// Handles both B2B and B2C dispute tracking and reconciliation
+
+model ReconciliationEntry {
+  id               String              @id @default(cuid())
+  organizationId   String
+  
+  // Generic entity linking (reusable pattern)
+  type             ReconciliationType
+  entityType       String              // "SaleorOrder", "POSPayment", "BartenderShift", "B2BOrder"
+  entityId         String              // FK to specific entity
+  
+  // Financial tracking
+  expectedAmount   Decimal?            @db.Decimal(10, 2)
+  actualAmount     Decimal?            @db.Decimal(10, 2)
+  varianceAmount   Decimal?            @db.Decimal(10, 2)
+  
+  // Status tracking
+  status           ReconciliationStatus @default(PENDING)
+  
+  // Dispute management
+  isDisputed       Boolean             @default(false)
+  disputeReason    String?
+  disputeCategory  DisputeCategory?
+  disputedBy       String?             // Staff member ID
+  disputedAt       DateTime?
+  resolvedBy       String?
+  resolvedAt       DateTime?
+  
+  // Audit trail
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  notes            Json?               // Flexible metadata for different types
+  
+  // Relations
+  organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items            ReconciliationItem[]
+  disputedByUser   User?               @relation("DisputedReconciliations", fields: [disputedBy], references: [id])
+  resolvedByUser   User?               @relation("ResolvedReconciliations", fields: [resolvedBy], references: [id])
+  
+  // Link to financial entries to prevent revenue inflation
+  financialEntries FinancialEntry[]
+  
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([isDisputed])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model ReconciliationItem {
+  id               String                    @id @default(cuid())
+  reconciliationId String
+  
+  // Product/item details (flexible for different entity types)
+  productSku       String?
+  productName      String?
+  variantId        String?
+  saleorVariantId  String?
+  
+  // Quantity reconciliation
+  expectedQuantity Int?
+  actualQuantity   Int?
+  quantityVariance Int?
+  
+  // Price reconciliation  
+  expectedPrice    Decimal?                  @db.Decimal(10, 2)
+  actualPrice      Decimal?                  @db.Decimal(10, 2)
+  priceVariance    Decimal?                  @db.Decimal(10, 2)
+  
+  // Status and dispute
+  status           ItemReconciliationStatus  @default(PENDING)
+  disputeReason    String?
+  notes            String?
+  
+  // Audit
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  
+  // Relations
+  reconciliation   ReconciliationEntry       @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  
+  @@index([reconciliationId])
+  @@index([productSku])
+  @@index([status])
+}
+
+// Enums for reconciliation types
+enum ReconciliationType {
+  B2B_ORDER_DELIVERY    // When supplier delivers B2B orders
+  B2C_PAYMENT          // When customers pay on-account bills
+  CASH_SHIFT           // Bartender cash reconciliation
+  BANK_RECONCILIATION  // Bank statement reconciliation
+  INVENTORY_ADJUSTMENT // Stock count adjustments
+}
+
+enum ReconciliationStatus {
+  PENDING              // Awaiting reconciliation
+  PARTIALLY_RECONCILED // Some items reconciled, others pending
+  FULLY_RECONCILED     // All items reconciled successfully
+  DISPUTED             // Has disputed items requiring resolution
+  RESOLVED             // All disputes resolved
+}
+
+enum DisputeCategory {
+  QUANTITY_MISMATCH    // Expected vs actual quantity different
+  PRICE_DISCREPANCY    // Price not as expected
+  QUALITY_ISSUE        // Product quality problems
+  MISSING_ITEMS        // Items not delivered/received
+  WRONG_ITEMS          // Different items than ordered
+  PAYMENT_ISSUE        // Payment method or amount problems
+  CUSTOMER_DISPUTE     // Customer disputes the bill
+  STAFF_ERROR          // Staff input or processing error
+  OTHER                // Other issues requiring explanation
+}
+
+enum ItemReconciliationStatus {
+  PENDING
+  ACCEPTED     // Item reconciled successfully
+  ADJUSTED     // Quantity/price adjusted to match reality
+  DISPUTED     // Item under dispute
+  RESOLVED     // Dispute resolved
+  REJECTED     // Item completely rejected
+}

@@ -1,0 +1,1723 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import crypto from "crypto";
+import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
+import { AuditSource } from "@prisma/client";
+import { triggerMeiliSync } from "./trigger-sync";
+import { clickhouse } from "@/lib/clickhouse";
+import { logger } from "@/lib/logger";
+
+type WebhookHandler = (payload: any) => Promise<void>;
+
+const eventHandlers = new Map<string, WebhookHandler>([
+  // Order Events
+  ["order_created", handleOrderCreated],
+  ["order_confirmed", handleOrderConfirmed],
+  ["order_fully_paid", handleOrderFullyPaid],
+  ["order_updated", handleOrderUpdated],
+  ["order_cancelled", handleOrderCancelled],
+  ["order_fulfilled", handleOrderFulfilled],
+  ["order_metadata_updated", handleOrderMetadataUpdated],
+  ["order_bulk_created", handleOrderBulkCreated],
+
+  // Fulfillment Events
+  ["fulfillment_created", handleFulfillmentCreated],
+  ["fulfillment_canceled", handleFulfillmentCanceled],
+  ["fulfillment_approved", handleFulfillmentApproved],
+  ["fulfillment_metadata_updated", handleFulfillmentMetadataUpdated],
+  ["fulfillment_tracking_number_updated", handleFulfillmentTrackingNumberUpdated],
+
+  // Draft Order Events
+  ["draft_order_created", handleDraftOrderCreated],
+  ["draft_order_updated", handleDraftOrderUpdated],
+  ["draft_order_deleted", handleDraftOrderDeleted],
+
+  // Sale Events
+  ["sale_created", handleSaleCreated],
+  ["sale_updated", handleSaleUpdated],
+  ["sale_deleted", handleSaleDeleted],
+  ["sale_toggle", handleSaleToggle],
+
+  // Promotion Events
+  ["promotion_created", handlePromotionCreated],
+  ["promotion_updated", handlePromotionUpdated],
+  ["promotion_deleted", handlePromotionDeleted],
+  ["promotion_started", handlePromotionStarted],
+  ["promotion_ended", handlePromotionEnded],
+  ["promotion_rule_created", handlePromotionRuleCreated],
+  ["promotion_rule_updated", handlePromotionRuleUpdated],
+  ["promotion_rule_deleted", handlePromotionRuleDeleted],
+
+  // Invoice Events
+  ["invoice_requested", handleInvoiceRequested],
+  ["invoice_deleted", handleInvoiceDeleted],
+  ["invoice_sent", handleInvoiceSent],
+
+  // Customer Events
+  ["customer_created", handleCustomerCreated],
+
+  // Product Events
+  ["product_created", handleProductCreated],
+  ["product_updated", handleProductUpdated],
+  ["product_deleted", handleProductDeleted],
+  
+  // Product Variant Events
+  ["product_variant_created", handleProductVariantCreated],
+  ["product_variant_updated", handleProductVariantUpdated],
+  ["product_variant_deleted", handleProductVariantDeleted],
+
+  // Gift Card Events
+  ["gift_card_created", handleGiftCardCreated],
+  ["gift_card_updated", handleGiftCardUpdated],
+  ["gift_card_deleted", handleGiftCardDeleted],
+  ["gift_card_sent", handleGiftCardSent],
+
+  // Translation Events
+  ["translation_created", handleTranslationCreated],
+  ["translation_updated", handleTranslationUpdated],
+]);
+
+export async function POST(req: NextRequest) {
+  logger.info("⭐ Webhook received");
+  
+  // ⚡ Immediate fire-and-forget for search sync
+  triggerMeiliSync().catch(err => {
+    logger.error("Failed to trigger MeiliSearch sync", { error: err.message });
+  });
+
+  const rawSigHeader =
+    req.headers.get("saleor-signature") ||
+    req.headers.get("x-saleor-signature");
+  if (!rawSigHeader) {
+    logger.error("❌ Missing signature header");
+    return NextResponse.json(
+      { success: false, error: "Missing signature header" },
+      { status: 400 }
+    );
+  }
+
+  // Get raw request body
+  let buffer;
+  try {
+    buffer = Buffer.from(await req.arrayBuffer());
+    logger.debug(`📦 Raw buffer size: ${buffer.length} bytes`);
+    if (buffer.length === 0) {
+      logger.error("❌ Empty request body");
+      return NextResponse.json(
+        { success: false, error: "Empty request body" },
+        { status: 400 }
+      );
+    }
+  } catch (err) {
+    logger.error("❌ Failed to read request body", { error: err });
+    return NextResponse.json(
+      { success: false, error: "Failed to read request body" },
+      { status: 400 }
+    );
+  }
+
+  // Verify signature
+  const incomingSig = rawSigHeader.replace(/^sha256=/i, "");
+  const secret = process.env.SALEOR_APP_SECRET || "3ac35634bc0eb55882d6ab3fc60d4871";
+  const hmac = crypto.createHmac("sha256", secret).update(buffer).digest("hex");
+
+  if (incomingSig !== hmac) {
+    logger.warn("❌ Signature mismatch", { incomingSig, hmac });
+    // In production, uncomment:
+    // return NextResponse.json({ success: false, error: "Invalid signature" }, { status: 401 });
+  }
+
+  // Get event type
+  const saleorEvent = (
+    req.headers.get("saleor-event") ||
+    req.headers.get("x-saleor-event") ||
+    "unknown"
+  ).toLowerCase();
+  logger.info(`📣 Event type: ${saleorEvent}`);
+
+  // Parse payload
+  let payload: any;
+  try {
+    const rawBody = buffer.toString("utf8");
+    logger.debug(`📄 Raw body: ${rawBody.substring(0, 200)}...`);
+    payload = JSON.parse(rawBody);
+    logger.debug("✅ Body parsed successfully");
+  } catch (err) {
+    logger.error("❌ JSON parsing failed:", { error: err });
+    return NextResponse.json(
+      { success: false, error: "Invalid JSON payload" },
+      { status: 400 }
+    );
+  }
+
+  // Log all webhook events for analytics
+  await logWebhookEvent(saleorEvent, payload).catch(err => {
+    logger.error("Failed to log webhook event", { error: err.message });
+  });
+
+  // Dispatch to appropriate handler
+  try {
+    const handler = eventHandlers.get(saleorEvent);
+    if (handler) {
+      await handler(payload);
+      logger.info(`✅ Successfully processed ${saleorEvent} event`);
+    } else {
+      // Log unhandled event types
+      logger.warn(`⚠️ Unhandled event type: ${saleorEvent}`);
+      await logUnhandledEvent(saleorEvent, payload);
+    }
+  } catch (error: any) {
+    logger.error(`❌ Error processing webhook: ${error.message}`, { 
+      error, 
+      stack: error.stack,
+      event: saleorEvent 
+    });
+    // Log the error but don't fail the webhook
+    await logWebhookError(saleorEvent, payload, error);
+    return NextResponse.json(
+      { success: false, error: "Error processing webhook" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true }, { status: 200 });
+}
+
+// Analytics and logging functions
+async function logWebhookEvent(eventType: string, payload: any) {
+  try {
+    // Send to ClickHouse for analytics
+    await clickhouse.insert('webhook_events', [{
+      event_type: eventType,
+      payload: JSON.stringify(payload),
+      timestamp: new Date(),
+      processed_at: new Date()
+    }]);
+
+    // Log to console
+    logger.info(`📊 Analytics: ${eventType} event processed`);
+    
+    // You can also create a WebhookEventLog table to track all events
+    await prisma.webhookEventLog.create({
+      data: {
+        eventType,
+        payload: JSON.stringify(payload),
+        processedAt: new Date(),
+      },
+    });
+  } catch (error: any) {
+    logger.error(`Error logging webhook event: ${error.message}`, { error });
+  }
+}
+
+async function logWebhookError(eventType: string, payload: any, error: any) {
+  try {
+    await prisma.stockAuditLog.create({
+      data: {
+        sku: "system",
+        productName: `Webhook Error: ${eventType}`,
+        previousStock: 0,
+        quantityChange: 0,
+        currentStock: 0,
+        unitCost: 0,
+        totalCost: 0,
+        source: "WEBHOOK",
+        reference: `ERROR-${Date.now()}`,
+        notes: `Webhook processing error for ${eventType}. Error: ${error.message}. Payload: ${JSON.stringify(payload).substring(0, 1000)}`,
+        userId: "system",
+        warehouseId: "default",
+        status: "PENDING",
+      },
+    });
+    
+    // Also log to ClickHouse for error analytics
+    await clickhouse.insert('webhook_errors', [{
+      event_type: eventType,
+      error_message: error.message,
+      error_stack: error.stack || '',
+      payload: JSON.stringify(payload).substring(0, 10000),
+      timestamp: new Date()
+    }]);
+  } catch (logError: any) {
+    logger.error(`Error logging webhook error: ${logError.message}`, { error: logError });
+  }
+}
+
+async function logUnhandledEvent(eventType: string, payload: any) {
+  try {
+    await prisma.stockAuditLog.create({
+      data: {
+        sku: "system",
+        productName: `Unhandled event: ${eventType}`,
+        previousStock: 0,
+        quantityChange: 0,
+        currentStock: 0,
+        unitCost: 0,
+        totalCost: 0,
+        source: "WEBHOOK",
+        reference: `UNHANDLED-${Date.now()}`,
+        notes: `Unhandled webhook event: ${eventType}. Payload: ${JSON.stringify(payload).substring(0, 1000)}`,
+        userId: "system",
+        warehouseId: "default",
+        status: "PENDING",
+      },
+    });
+    
+    // Log to ClickHouse for analytics
+    await clickhouse.insert('unhandled_events', [{
+      event_type: eventType,
+      payload: JSON.stringify(payload).substring(0, 10000),
+      timestamp: new Date()
+    }]);
+  } catch (error: any) {
+    logger.error(`Error logging unhandled event: ${error.message}`, { error });
+  }
+}
+
+// =============================================================================
+// PRODUCT EVENT HANDLERS
+// =============================================================================
+
+async function handleProductCreated(payload: any) {
+  logger.info("📦 Product created:", payload.product?.name || "unknown product");
+  await processProductUpdate(payload);
+  
+  // Send to ClickHouse for product analytics
+  await clickhouse.insert('product_events', [{
+    event_type: 'created',
+    product_id: payload.product?.id,
+    product_name: payload.product?.name,
+    category: payload.product?.category?.name || 'Uncategorized',
+    timestamp: new Date()
+  }]);
+}
+
+async function handleProductUpdated(payload: any) {
+  logger.info("📦 Product updated:", payload.product?.name || "unknown product");
+  await processProductUpdate(payload);
+  
+  // Send to ClickHouse for product analytics
+  await clickhouse.insert('product_events', [{
+    event_type: 'updated',
+    product_id: payload.product?.id,
+    product_name: payload.product?.name,
+    category: payload.product?.category?.name || 'Uncategorized',
+    timestamp: new Date()
+  }]);
+}
+
+async function handleProductDeleted(payload: any) {
+  logger.info("📦 Product deleted:", payload.product?.id || "unknown product");
+  
+  // Mark product as deleted in your system
+  if (payload.product?.id) {
+    try {
+      // Update product status in your database
+      await prisma.product.updateMany({
+        where: { saleorId: payload.product.id },
+        data: { status: 'DELETED', deletedAt: new Date() }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('product_events', [{
+        event_type: 'deleted',
+        product_id: payload.product.id,
+        product_name: payload.product.name || 'Unknown',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling product deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleProductVariantCreated(payload: any) {
+  logger.info("📦 Product variant created");
+  await processProductUpdate(payload);
+}
+
+async function handleProductVariantUpdated(payload: any) {
+  logger.info("📦 Product variant updated");
+  await processProductUpdate(payload);
+}
+
+async function handleProductVariantDeleted(payload: any) {
+  logger.info("📦 Product variant deleted");
+  
+  // Handle variant deletion
+  if (payload.productVariant?.id) {
+    try {
+      // Update variant status in your database
+      await prisma.productVariant.updateMany({
+        where: { saleorId: payload.productVariant.id },
+        data: { status: 'DELETED', deletedAt: new Date() }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('product_variant_events', [{
+        event_type: 'deleted',
+        variant_id: payload.productVariant.id,
+        product_id: payload.productVariant.product?.id,
+        sku: payload.productVariant.sku || 'Unknown',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling variant deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// ORDER EVENT HANDLERS
+// =============================================================================
+
+async function handleOrderCreated(payload: any) {
+  logger.info("🛒 Order created:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "CREATED");
+  
+  // Create order analytics record
+  await clickhouse.insert('order_events', [{
+    order_id: payload.order?.id,
+    event_type: 'created',
+    customer_email: payload.order?.userEmail,
+    total_amount: payload.order?.totalGrossAmount?.amount,
+    currency: payload.order?.totalGrossAmount?.currency,
+    timestamp: new Date(),
+    channel: payload.order?.channel?.slug
+  }]);
+}
+
+async function handleOrderUpdated(payload: any) {
+  logger.info("🛒 Order updated:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "UPDATED");
+}
+
+async function handleOrderConfirmed(payload: any) {
+  logger.info("🛒 Order confirmed:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "CONFIRMED");
+  
+  // Reserve inventory
+  if (payload.order && Array.isArray(payload.order.lines)) {
+    for (const line of payload.order.lines) {
+      const { variant, quantity } = line;
+      if (variant && variant.sku) {
+        await reserveInventory(
+          variant.sku,
+          quantity,
+          payload.order.id
+        );
+      }
+    }
+  }
+  
+  // Send confirmation emails
+  await sendOrderConfirmationEmail(payload.order);
+}
+
+async function handleOrderFullyPaid(payload: any) {
+  logger.info("🛒 Order fully paid:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "FULLY_PAID");
+  
+  // Update financial records
+  await updateFinancialRecords(payload.order, 'PAYMENT');
+  
+  // Trigger fulfillment process
+  await triggerFulfillmentProcess(payload.order);
+}
+
+async function handleOrderFulfilled(payload: any) {
+  logger.info("🛒 Order fulfilled:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "FULFILLED");
+  
+  // Decrease stock and create audit logs
+  if (payload.order && Array.isArray(payload.order.lines)) {
+    for (const line of payload.order.lines) {
+      const { variant, quantity } = line;
+      if (variant && variant.sku) {
+        await createStockDecrementAuditLog(
+          variant.sku,
+          variant.product?.name || "Unknown product",
+          variant.name || "Unknown variant",
+          quantity,
+          "ORDER_FULFILLED",
+          payload.order.id
+        );
+      }
+    }
+  }
+  
+  // Send fulfillment notification
+  await sendFulfillmentNotification(payload.order);
+}
+
+async function handleOrderCancelled(payload: any) {
+  logger.info("🛒 Order cancelled:", payload.order?.id || "unknown order");
+  await processOrderEvent(payload, "CANCELLED");
+  
+  // Restore inventory
+  if (payload.order && Array.isArray(payload.order.lines)) {
+    for (const line of payload.order.lines) {
+      const { variant, quantity } = line;
+      if (variant && variant.sku) {
+        await restoreInventory(
+          variant.sku,
+          quantity,
+          payload.order.id
+        );
+      }
+    }
+  }
+  
+  // Update analytics
+  await clickhouse.insert('order_events', [{
+    order_id: payload.order?.id,
+    event_type: 'cancelled',
+    customer_email: payload.order?.userEmail,
+    total_amount: payload.order?.totalGrossAmount?.amount,
+    currency: payload.order?.totalGrossAmount?.currency,
+    timestamp: new Date(),
+    channel: payload.order?.channel?.slug
+  }]);
+}
+
+async function handleOrderMetadataUpdated(payload: any) {
+  logger.info("🛒 Order metadata updated:", payload.order?.id || "unknown order");
+  
+  // Process metadata updates
+  if (payload.order?.metadata) {
+    try {
+      // Update order metadata in your database
+      await prisma.order.update({
+        where: { saleorId: payload.order.id },
+        data: { 
+          metadata: payload.order.metadata 
+        }
+      });
+      
+      // Check for specific metadata changes that might trigger actions
+      const metadata = payload.order.metadata;
+      if (metadata.conversationContext) {
+        await updateConversationContext(payload.order.id, metadata.conversationContext);
+      }
+      
+      if (metadata.priority) {
+        await updateOrderPriority(payload.order.id, metadata.priority);
+      }
+    } catch (error: any) {
+      logger.error(`Error handling order metadata update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleOrderBulkCreated(payload: any) {
+  logger.info("🛒 Order bulk created");
+  
+  // Process bulk orders
+  if (Array.isArray(payload.orders)) {
+    for (const order of payload.orders) {
+      try {
+        await processOrderEvent({ order }, "CREATED");
+        
+        // Create order analytics record
+        await clickhouse.insert('order_events', [{
+          order_id: order.id,
+          event_type: 'bulk_created',
+          customer_email: order.userEmail,
+          total_amount: order.totalGrossAmount?.amount,
+          currency: order.totalGrossAmount?.currency,
+          timestamp: new Date(),
+          channel: order.channel?.slug
+        }]);
+      } catch (error: any) {
+        logger.error(`Error processing bulk order ${order.id}: ${error.message}`, { error });
+      }
+    }
+  }
+}
+
+// =============================================================================
+// FULFILLMENT EVENT HANDLERS
+// =============================================================================
+
+async function handleFulfillmentCreated(payload: any) {
+  logger.info("📦 Fulfillment created:", payload.fulfillment?.id || "unknown fulfillment");
+  
+  // Process fulfillment creation
+  if (payload.fulfillment && payload.order) {
+    try {
+      // Update order status
+      await prisma.order.update({
+        where: { saleorId: payload.order.id },
+        data: { 
+          fulfillmentStatus: 'FULFILLED',
+          fulfillmentId: payload.fulfillment.id,
+          fulfillmentCreatedAt: new Date()
+        }
+      });
+      
+      // Process tracking information
+      if (payload.fulfillment.trackingNumber) {
+        await updateTrackingInformation(
+          payload.order.id,
+          payload.fulfillment.id,
+          payload.fulfillment.trackingNumber
+        );
+      }
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('fulfillment_events', [{
+        fulfillment_id: payload.fulfillment.id,
+        order_id: payload.order.id,
+        event_type: 'created',
+        tracking_number: payload.fulfillment.trackingNumber || null,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling fulfillment creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleFulfillmentCanceled(payload: any) {
+  logger.info("📦 Fulfillment canceled:", payload.fulfillment?.id || "unknown fulfillment");
+  
+  // Process fulfillment cancellation
+  if (payload.fulfillment && payload.order) {
+    try {
+      // Update order status
+      await prisma.order.update({
+        where: { saleorId: payload.order.id },
+        data: { 
+          fulfillmentStatus: 'CANCELED',
+          fulfillmentCanceledAt: new Date()
+        }
+      });
+      
+      // Restore inventory
+      for (const line of payload.fulfillment.lines || []) {
+        if (line.orderLine?.variant?.sku && line.quantity) {
+          await restoreInventory(
+            line.orderLine.variant.sku,
+            line.quantity,
+            payload.order.id
+          );
+        }
+      }
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('fulfillment_events', [{
+        fulfillment_id: payload.fulfillment.id,
+        order_id: payload.order.id,
+        event_type: 'canceled',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling fulfillment cancellation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleFulfillmentApproved(payload: any) {
+  logger.info("📦 Fulfillment approved:", payload.fulfillment?.id || "unknown fulfillment");
+  
+  // Process fulfillment approval
+  if (payload.fulfillment && payload.order) {
+    try {
+      // Update order status
+      await prisma.order.update({
+        where: { saleorId: payload.order.id },
+        data: { 
+          fulfillmentStatus: 'APPROVED',
+          fulfillmentApprovedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('fulfillment_events', [{
+        fulfillment_id: payload.fulfillment.id,
+        order_id: payload.order.id,
+        event_type: 'approved',
+        timestamp: new Date()
+      }]);
+      
+      // Send approval notification
+      await sendFulfillmentApprovalNotification(payload.order, payload.fulfillment);
+    } catch (error: any) {
+      logger.error(`Error handling fulfillment approval: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleFulfillmentMetadataUpdated(payload: any) {
+  logger.info("📦 Fulfillment metadata updated:", payload.fulfillment?.id || "unknown fulfillment");
+  
+  // Process fulfillment metadata updates
+  if (payload.fulfillment?.metadata) {
+    try {
+      // Update fulfillment metadata in your database
+      await prisma.fulfillment.update({
+        where: { saleorId: payload.fulfillment.id },
+        data: { 
+          metadata: payload.fulfillment.metadata 
+        }
+      });
+    } catch (error: any) {
+      logger.error(`Error handling fulfillment metadata update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleFulfillmentTrackingNumberUpdated(payload: any) {
+  logger.info("📦 Fulfillment tracking number updated:", payload.fulfillment?.id || "unknown fulfillment");
+  
+  // Process tracking number update
+  if (payload.fulfillment && payload.order) {
+    try {
+      // Update tracking information
+      await updateTrackingInformation(
+        payload.order.id,
+        payload.fulfillment.id,
+        payload.fulfillment.trackingNumber
+      );
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('fulfillment_events', [{
+        fulfillment_id: payload.fulfillment.id,
+        order_id: payload.order.id,
+        event_type: 'tracking_updated',
+        tracking_number: payload.fulfillment.trackingNumber || null,
+        timestamp: new Date()
+      }]);
+      
+      // Send tracking update notification
+      await sendTrackingUpdateNotification(payload.order, payload.fulfillment);
+    } catch (error: any) {
+      logger.error(`Error handling tracking number update: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// DRAFT ORDER EVENT HANDLERS
+// =============================================================================
+
+async function handleDraftOrderCreated(payload: any) {
+  logger.info("📝 Draft order created:", payload.order?.id || "unknown draft order");
+  
+  // Process draft order creation
+  if (payload.order) {
+    try {
+      // Store draft order in your database
+      await prisma.draftOrder.create({
+        data: {
+          saleorId: payload.order.id,
+          status: 'DRAFT',
+          userEmail: payload.order.userEmail,
+          createdAt: new Date(),
+          totalAmount: payload.order.totalGrossAmount?.amount || 0,
+          currency: payload.order.totalGrossAmount?.currency || 'KES',
+          metadata: payload.order.metadata || {},
+          channelSlug: payload.order.channel?.slug || 'default'
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('draft_order_events', [{
+        draft_order_id: payload.order.id,
+        event_type: 'created',
+        customer_email: payload.order.userEmail,
+        total_amount: payload.order.totalGrossAmount?.amount,
+        currency: payload.order.totalGrossAmount?.currency,
+        timestamp: new Date(),
+        channel: payload.order.channel?.slug
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling draft order creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleDraftOrderUpdated(payload: any) {
+  logger.info("📝 Draft order updated:", payload.order?.id || "unknown draft order");
+  
+  // Process draft order update
+  if (payload.order) {
+    try {
+      // Update draft order in your database
+      await prisma.draftOrder.update({
+        where: { saleorId: payload.order.id },
+        data: {
+          updatedAt: new Date(),
+          totalAmount: payload.order.totalGrossAmount?.amount || 0,
+          currency: payload.order.totalGrossAmount?.currency || 'KES',
+          metadata: payload.order.metadata || {}
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('draft_order_events', [{
+        draft_order_id: payload.order.id,
+        event_type: 'updated',
+        customer_email: payload.order.userEmail,
+        total_amount: payload.order.totalGrossAmount?.amount,
+        currency: payload.order.totalGrossAmount?.currency,
+        timestamp: new Date(),
+        channel: payload.order.channel?.slug
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling draft order update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleDraftOrderDeleted(payload: any) {
+  logger.info("📝 Draft order deleted:", payload.order?.id || "unknown draft order");
+  
+  // Process draft order deletion
+  if (payload.order) {
+    try {
+      // Mark draft order as deleted in your database
+      await prisma.draftOrder.update({
+        where: { saleorId: payload.order.id },
+        data: {
+          status: 'DELETED',
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('draft_order_events', [{
+        draft_order_id: payload.order.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling draft order deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// SALE & PROMOTION EVENT HANDLERS
+// =============================================================================
+
+async function handleSaleCreated(payload: any) {
+  logger.info("🏷️ Sale created:", payload.sale?.id || "unknown sale");
+  
+  // Process sale creation
+  if (payload.sale) {
+    try {
+      // Store sale in your database
+      await prisma.sale.create({
+        data: {
+          saleorId: payload.sale.id,
+          name: payload.sale.name,
+          type: payload.sale.type,
+          value: payload.sale.value,
+          startDate: payload.sale.startDate ? new Date(payload.sale.startDate) : null,
+          endDate: payload.sale.endDate ? new Date(payload.sale.endDate) : null,
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('sale_events', [{
+        sale_id: payload.sale.id,
+        event_type: 'created',
+        name: payload.sale.name,
+        value: payload.sale.value,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling sale creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleSaleUpdated(payload: any) {
+  logger.info("🏷️ Sale updated:", payload.sale?.id || "unknown sale");
+  
+  // Process sale update
+  if (payload.sale) {
+    try {
+      // Update sale in your database
+      await prisma.sale.update({
+        where: { saleorId: payload.sale.id },
+        data: {
+          name: payload.sale.name,
+          type: payload.sale.type,
+          value: payload.sale.value,
+          startDate: payload.sale.startDate ? new Date(payload.sale.startDate) : null,
+          endDate: payload.sale.endDate ? new Date(payload.sale.endDate) : null,
+          updatedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('sale_events', [{
+        sale_id: payload.sale.id,
+        event_type: 'updated',
+        name: payload.sale.name,
+        value: payload.sale.value,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling sale update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleSaleDeleted(payload: any) {
+  logger.info("🏷️ Sale deleted:", payload.sale?.id || "unknown sale");
+  
+  // Process sale deletion
+  if (payload.sale) {
+    try {
+      // Mark sale as deleted in your database
+      await prisma.sale.update({
+        where: { saleorId: payload.sale.id },
+        data: {
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('sale_events', [{
+        sale_id: payload.sale.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling sale deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleSaleToggle(payload: any) {
+  logger.info("🏷️ Sale toggled:", payload.sale?.id || "unknown sale");
+  
+  // Process sale toggle
+  if (payload.sale) {
+    try {
+      // Update sale status in your database
+      await prisma.sale.update({
+        where: { saleorId: payload.sale.id },
+        data: {
+          isActive: payload.sale.isActive
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('sale_events', [{
+        sale_id: payload.sale.id,
+        event_type: 'toggled',
+        is_active: payload.sale.isActive,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling sale toggle: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionCreated(payload: any) {
+  logger.info("🎁 Promotion created:", payload.promotion?.id || "unknown promotion");
+  
+  // Process promotion creation
+  if (payload.promotion) {
+    try {
+      // Store promotion in your database
+      await prisma.promotion.create({
+        data: {
+          saleorId: payload.promotion.id,
+          name: payload.promotion.name,
+          description: payload.promotion.description || '',
+          startDate: payload.promotion.startDate ? new Date(payload.promotion.startDate) : null,
+          endDate: payload.promotion.endDate ? new Date(payload.promotion.endDate) : null,
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_events', [{
+        promotion_id: payload.promotion.id,
+        event_type: 'created',
+        name: payload.promotion.name,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionUpdated(payload: any) {
+  logger.info("🎁 Promotion updated:", payload.promotion?.id || "unknown promotion");
+  
+  // Process promotion update
+  if (payload.promotion) {
+    try {
+      // Update promotion in your database
+      await prisma.promotion.update({
+        where: { saleorId: payload.promotion.id },
+        data: {
+          name: payload.promotion.name,
+          description: payload.promotion.description || '',
+          startDate: payload.promotion.startDate ? new Date(payload.promotion.startDate) : null,
+          endDate: payload.promotion.endDate ? new Date(payload.promotion.endDate) : null,
+          updatedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_events', [{
+        promotion_id: payload.promotion.id,
+        event_type: 'updated',
+        name: payload.promotion.name,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionDeleted(payload: any) {
+  logger.info("🎁 Promotion deleted:", payload.promotion?.id || "unknown promotion");
+  
+  // Process promotion deletion
+  if (payload.promotion) {
+    try {
+      // Mark promotion as deleted in your database
+      await prisma.promotion.update({
+        where: { saleorId: payload.promotion.id },
+        data: {
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_events', [{
+        promotion_id: payload.promotion.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionStarted(payload: any) {
+  logger.info("🎁 Promotion started:", payload.promotion?.id || "unknown promotion");
+  
+  // Process promotion start
+  if (payload.promotion) {
+    try {
+      // Update promotion status in your database
+      await prisma.promotion.update({
+        where: { saleorId: payload.promotion.id },
+        data: {
+          status: 'ACTIVE',
+          startedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_events', [{
+        promotion_id: payload.promotion.id,
+        event_type: 'started',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion start: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionEnded(payload: any) {
+  logger.info("🎁 Promotion ended:", payload.promotion?.id || "unknown promotion");
+  
+  // Process promotion end
+  if (payload.promotion) {
+    try {
+      // Update promotion status in your database
+      await prisma.promotion.update({
+        where: { saleorId: payload.promotion.id },
+        data: {
+          status: 'ENDED',
+          endedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_events', [{
+        promotion_id: payload.promotion.id,
+        event_type: 'ended',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion end: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionRuleCreated(payload: any) {
+  logger.info("🎁 Promotion rule created:", payload.promotionRule?.id || "unknown rule");
+  
+  // Process promotion rule creation
+  if (payload.promotionRule && payload.promotion) {
+    try {
+      // Store promotion rule in your database
+      await prisma.promotionRule.create({
+        data: {
+          saleorId: payload.promotionRule.id,
+          promotionId: payload.promotion.id,
+          name: payload.promotionRule.name || '',
+          description: payload.promotionRule.description || '',
+          cataloguePredicate: payload.promotionRule.cataloguePredicate || {},
+          rewardValue: payload.promotionRule.rewardValue || 0,
+          rewardType: payload.promotionRule.rewardType || '',
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_rule_events', [{
+        rule_id: payload.promotionRule.id,
+        promotion_id: payload.promotion.id,
+        event_type: 'created',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion rule creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionRuleUpdated(payload: any) {
+  logger.info("🎁 Promotion rule updated:", payload.promotionRule?.id || "unknown rule");
+  
+  // Process promotion rule update
+  if (payload.promotionRule) {
+    try {
+      // Update promotion rule in your database
+      await prisma.promotionRule.update({
+        where: { saleorId: payload.promotionRule.id },
+        data: {
+          name: payload.promotionRule.name || '',
+          description: payload.promotionRule.description || '',
+          cataloguePredicate: payload.promotionRule.cataloguePredicate || {},
+          rewardValue: payload.promotionRule.rewardValue || 0,
+          rewardType: payload.promotionRule.rewardType || '',
+          updatedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_rule_events', [{
+        rule_id: payload.promotionRule.id,
+        promotion_id: payload.promotion?.id,
+        event_type: 'updated',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion rule update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handlePromotionRuleDeleted(payload: any) {
+  logger.info("🎁 Promotion rule deleted:", payload.promotionRule?.id || "unknown rule");
+  
+  // Process promotion rule deletion
+  if (payload.promotionRule) {
+    try {
+      // Mark promotion rule as deleted in your database
+      await prisma.promotionRule.update({
+        where: { saleorId: payload.promotionRule.id },
+        data: {
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('promotion_rule_events', [{
+        rule_id: payload.promotionRule.id,
+        promotion_id: payload.promotion?.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling promotion rule deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// INVOICE EVENT HANDLERS
+// =============================================================================
+
+async function handleInvoiceRequested(payload: any) {
+  logger.info("📄 Invoice requested:", payload.invoice?.id || "unknown invoice");
+  
+  // Process invoice request
+  if (payload.invoice && payload.order) {
+    try {
+      // Store invoice request in your database
+      await prisma.invoice.create({
+        data: {
+          saleorId: payload.invoice.id,
+          orderId: payload.order.id,
+          number: payload.invoice.number || '',
+          url: payload.invoice.url || '',
+          status: 'REQUESTED',
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('invoice_events', [{
+        invoice_id: payload.invoice.id,
+        order_id: payload.order.id,
+        event_type: 'requested',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling invoice request: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleInvoiceDeleted(payload: any) {
+  logger.info("📄 Invoice deleted:", payload.invoice?.id || "unknown invoice");
+  
+  // Process invoice deletion
+  if (payload.invoice) {
+    try {
+      // Mark invoice as deleted in your database
+      await prisma.invoice.update({
+        where: { saleorId: payload.invoice.id },
+        data: {
+          status: 'DELETED',
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('invoice_events', [{
+        invoice_id: payload.invoice.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling invoice deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleInvoiceSent(payload: any) {
+  logger.info("📄 Invoice sent:", payload.invoice?.id || "unknown invoice");
+  
+  // Process invoice sent
+  if (payload.invoice && payload.order) {
+    try {
+      // Update invoice status in your database
+      await prisma.invoice.update({
+        where: { saleorId: payload.invoice.id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+          url: payload.invoice.url || ''
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('invoice_events', [{
+        invoice_id: payload.invoice.id,
+        order_id: payload.order.id,
+        event_type: 'sent',
+        timestamp: new Date()
+      }]);
+      
+      // Update accounting records
+      await updateAccountingRecords(payload.order, payload.invoice);
+    } catch (error: any) {
+      logger.error(`Error handling invoice sent: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// CUSTOMER EVENT HANDLERS
+// =============================================================================
+
+async function handleCustomerCreated(payload: any) {
+  logger.info("👤 Customer created:", payload.user?.email || "unknown customer");
+  
+  // Process customer creation
+  if (payload.user) {
+    try {
+      // Store customer in your database
+      await prisma.customer.create({
+        data: {
+          saleorId: payload.user.id,
+          email: payload.user.email,
+          firstName: payload.user.firstName || '',
+          lastName: payload.user.lastName || '',
+          isActive: payload.user.isActive || true,
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('customer_events', [{
+        customer_id: payload.user.id,
+        email: payload.user.email,
+        event_type: 'created',
+        timestamp: new Date()
+      }]);
+      
+      // Add to CRM
+      await addCustomerToCRM(payload.user);
+    } catch (error: any) {
+      logger.error(`Error handling customer creation: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// GIFT CARD EVENT HANDLERS
+// =============================================================================
+
+async function handleGiftCardCreated(payload: any) {
+  logger.info("🎁 Gift card created:", payload.giftCard?.id || "unknown gift card");
+  
+  // Process gift card creation
+  if (payload.giftCard) {
+    try {
+      // Store gift card in your database
+      await prisma.giftCard.create({
+        data: {
+          saleorId: payload.giftCard.id,
+          code: payload.giftCard.code,
+          initialBalance: payload.giftCard.initialBalance?.amount || 0,
+          currentBalance: payload.giftCard.currentBalance?.amount || 0,
+          currency: payload.giftCard.currency || 'KES',
+          isActive: payload.giftCard.isActive || true,
+          expiryDate: payload.giftCard.expiryDate ? new Date(payload.giftCard.expiryDate) : null,
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('gift_card_events', [{
+        gift_card_id: payload.giftCard.id,
+        event_type: 'created',
+        initial_balance: payload.giftCard.initialBalance?.amount,
+        currency: payload.giftCard.currency,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling gift card creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleGiftCardUpdated(payload: any) {
+  logger.info("🎁 Gift card updated:", payload.giftCard?.id || "unknown gift card");
+  
+  // Process gift card update
+  if (payload.giftCard) {
+    try {
+      // Update gift card in your database
+      await prisma.giftCard.update({
+        where: { saleorId: payload.giftCard.id },
+        data: {
+          currentBalance: payload.giftCard.currentBalance?.amount || 0,
+          isActive: payload.giftCard.isActive,
+          expiryDate: payload.giftCard.expiryDate ? new Date(payload.giftCard.expiryDate) : null,
+          updatedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('gift_card_events', [{
+        gift_card_id: payload.giftCard.id,
+        event_type: 'updated',
+        current_balance: payload.giftCard.currentBalance?.amount,
+        is_active: payload.giftCard.isActive,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling gift card update: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleGiftCardDeleted(payload: any) {
+  logger.info("🎁 Gift card deleted:", payload.giftCard?.id || "unknown gift card");
+  
+  // Process gift card deletion
+  if (payload.giftCard) {
+    try {
+      // Mark gift card as deleted in your database
+      await prisma.giftCard.update({
+        where: { saleorId: payload.giftCard.id },
+        data: {
+          isActive: false,
+          deletedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('gift_card_events', [{
+        gift_card_id: payload.giftCard.id,
+        event_type: 'deleted',
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling gift card deletion: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleGiftCardSent(payload: any) {
+  logger.info("🎁 Gift card sent:", payload.giftCard?.id || "unknown gift card");
+  
+  // Process gift card sent
+  if (payload.giftCard && payload.giftCard.recipient) {
+    try {
+      // Update gift card status in your database
+      await prisma.giftCard.update({
+        where: { saleorId: payload.giftCard.id },
+        data: {
+          sentAt: new Date(),
+          recipientEmail: payload.giftCard.recipient.email || '',
+          recipientName: payload.giftCard.recipient.name || ''
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('gift_card_events', [{
+        gift_card_id: payload.giftCard.id,
+        event_type: 'sent',
+        recipient_email: payload.giftCard.recipient.email,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling gift card sent: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// TRANSLATION EVENT HANDLERS
+// =============================================================================
+
+async function handleTranslationCreated(payload: any) {
+  logger.info("🌐 Translation created");
+  
+  // Process translation creation
+  if (payload.translation) {
+    try {
+      // Store translation in your database
+      await prisma.translation.create({
+        data: {
+          saleorId: payload.translation.id,
+          languageCode: payload.translation.languageCode,
+          field: payload.translation.field,
+          value: payload.translation.value || '',
+          objectId: payload.translation.objectId,
+          objectType: payload.translation.objectType,
+          createdAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('translation_events', [{
+        translation_id: payload.translation.id,
+        event_type: 'created',
+        language_code: payload.translation.languageCode,
+        object_type: payload.translation.objectType,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling translation creation: ${error.message}`, { error });
+    }
+  }
+}
+
+async function handleTranslationUpdated(payload: any) {
+  logger.info("🌐 Translation updated");
+  
+  // Process translation update
+  if (payload.translation) {
+    try {
+      // Update translation in your database
+      await prisma.translation.update({
+        where: { saleorId: payload.translation.id },
+        data: {
+          value: payload.translation.value || '',
+          updatedAt: new Date()
+        }
+      });
+      
+      // Send to ClickHouse for analytics
+      await clickhouse.insert('translation_events', [{
+        translation_id: payload.translation.id,
+        event_type: 'updated',
+        language_code: payload.translation.languageCode,
+        object_type: payload.translation.objectType,
+        timestamp: new Date()
+      }]);
+    } catch (error: any) {
+      logger.error(`Error handling translation update: ${error.message}`, { error });
+    }
+  }
+}
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+async function processOrderEvent(payload: any, eventType: string) {
+  try {
+    // Create comprehensive order analytics
+    await clickhouse.insert('order_events', [{
+      order_id: payload.order?.id,
+      event_type: eventType,
+      customer_email: payload.order?.userEmail,
+      total_amount: payload.order?.totalGrossAmount?.amount,
+      currency: payload.order?.totalGrossAmount?.currency,
+      timestamp: new Date(),
+      channel: payload.order?.channel?.slug
+    }]);
+
+    logger.info(`📊 Order analytics: ${eventType} for order ${payload.order?.id}`);
+  } catch (error: any) {
+    logger.error(`Error processing order event: ${error.message}`, { error });
+  }
+}
+
+async function processProductUpdate(payload: any) {
+  if (!payload.product) {
+    logger.error("Missing product data in payload");
+    return;
+  }
+
+  const product = payload.product;
+  logger.info(`Processing product update for: ${product.name}`);
+
+  // Process each variant
+  for (const variant of product.variants || []) {
+    // Process each stock entry for the variant
+    for (const stock of variant.stocks || []) {
+      const warehouseId = stock.warehouse.id;
+      const currentQuantity = stock.quantity;
+
+      try {
+        // Get the last audit log for this SKU and warehouse
+        const lastAuditLog = await prisma.stockAuditLog.findFirst({
+          where: {
+            sku: variant.sku,
+            warehouseId: warehouseId,
+          },
+          orderBy: {
+            timestamp: "desc",
+          },
+        });
+
+        // If this is the first time we're seeing this product
+        if (!lastAuditLog) {
+          logger.info(
+            `First time seeing product ${product.name} (${variant.sku}), creating initial audit log`
+          );
+
+          await prisma.stockAuditLog.create({
+            data: {
+              sku: variant.sku,
+              productName: product.name,
+              variantName: variant.name,
+              previousStock: 0,
+              quantityChange: currentQuantity,
+              currentStock: currentQuantity,
+              unitCost: 0,
+              totalCost: 0,
+              source: "WEBHOOK",
+              reference: `INIT-${variant.sku}`,
+              notes: "Initial stock record from Saleor webhook",
+              userId: "system",
+              warehouseId: warehouseId,
+              saleorVariantId: variant.id,
+              saleorProductId: product.id,
+            },
+          });
+
+          await updateRedisCache(
+            variant.sku,
+            product.name,
+            variant.name,
+            product.category?.name
+          );
+
+          continue;
+        }
+
+        // If quantity hasn't changed, no need to create a new audit log
+        if (lastAuditLog.currentStock === currentQuantity) {
+          logger.info(
+            `No quantity change for ${product.name} (${variant.sku}), skipping audit log`
+          );
+          continue;
+        }
+
+        const quantityChange = currentQuantity - lastAuditLog.currentStock;
+        let auditSource = "WEBHOOK";
+        let notes = "Stock updated via Saleor webhook";
+
+        if (quantityChange > 0) {
+          auditSource = "RECEIVE";
+          notes = "Stock increased via Saleor webhook";
+        } else if (quantityChange < 0) {
+          auditSource = "ADJUSTMENT";
+          notes = "Stock decreased via Saleor webhook";
+        }
+
+        const prevUnitCostNum = lastAuditLog.unitCost.toNumber();
+
+        await prisma.stockAuditLog.create({
+          data: {
+            sku: variant.sku,
+            productName: product.name,
+            variantName: variant.name,
+            previousStock: lastAuditLog.currentStock,
+            quantityChange: quantityChange,
+            currentStock: currentQuantity,
+            unitCost: lastAuditLog.unitCost || 0,
+            totalCost: prevUnitCostNum * Math.abs(quantityChange),
+            source: AuditSource.WEBHOOK,
+            reference: `WEBHOOK-${Date.now()}`,
+            notes: notes,
+            userId: "system",
+            warehouseId: warehouseId,
+            saleorVariantId: variant.id,
+            saleorProductId: product.id,
+          },
+        });
+
+        logger.info(
+          `Created audit log for ${product.name} (${variant.sku}): ${quantityChange} units`
+        );
+
+        await updateRedisCache(
+          variant.sku,
+          product.name,
+          variant.name,
+          product.category?.name
+        );
+      } catch (error: any) {
+        logger.error(
+          `Error processing stock update for ${variant.sku}:`,
+          { error }
+        );
+      }
+    }
+  }
+}
+
+async function createStockDecrementAuditLog(
+  sku: string,
+  productName: string,
+  variantName: string,
+  quantity: number,
+  source: string,
+  reference: string
+) {
+  try {
+    const lastAuditLog = await prisma.stockAuditLog.findFirst({
+      where: { sku },
+      orderBy: { timestamp: "desc" },
+    });
+
+    if (!lastAuditLog) {
+      logger.error(
+        `Cannot decrement stock for ${sku}: no existing stock record found`
+      );
+      return;
+    }
+
+    const currentStock = lastAuditLog.currentStock;
+    const newStock = Math.max(0, currentStock - quantity);
+    const prevUnitCostNum = lastAuditLog.unitCost.toNumber();
+
+    await prisma.stockAuditLog.create({
+      data: {
+        sku,
+        productName,
+        variantName,
+        previousStock: currentStock,
+        quantityChange: -quantity,
+        currentStock: newStock,
+        unitCost: lastAuditLog.unitCost || 0,
+        totalCost: prevUnitCostNum * quantity,
+        source: AuditSource.WEBHOOK,
+        reference,
+        notes: `Stock decreased due to ${source.toLowerCase()}`,
+        userId: "system",
+        warehouseId: lastAuditLog.warehouseId,
+      },
+    });
+
+    logger.info(`Stock audit log created for ${sku}: -${quantity} units`);
+    await updateRedisCache(sku, productName, variantName);
+  } catch (error: any) {
+    logger.error(
+      `Error creating stock decrement audit log for ${sku}:`,
+      { error }
+    );
+  }
+}
+
+async function updateRedisCache(
+  sku: string,
+  productName: string,
+  variantName: string | null,
+  category: string | null = null
+): Promise<void> {
+  try {
+    const cacheKey = `product:${sku}`;
+
+    await redis.hset(cacheKey, {
+      sku,
+      productName,
+      variantName: variantName || "",
+      category: category || "Uncategorized",
+      lastUpdated: new Date().toISOString(),
+    });
+
+    await redis.expire(cacheKey, 60 * 60 * 24 * 14);
+
+    await prisma.redisCacheEntry.upsert({
+      where: { sku },
+      update: {
+        productName,
+        variantName,
+        category,
+        lastUpdated: new Date(),
+      },
+      create: {
+        sku,
+        productName,
+        variantName,
+        category,
+        ttl: 60 * 60 * 24 * 14,
+      },
+    });
+
+    logger.info(`📥✅ Redis cache updated for ${sku}`);
+  } catch (error: any) {
+    logger.error(`Error updating Redis cache for ${sku}:`, { error });
+  }
+}

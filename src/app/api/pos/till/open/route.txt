@@ -1,0 +1,58 @@
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+
+import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: headers(),
+    });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { openingBalance, tillNumber } = body;
+
+    if (!openingBalance) {
+      return NextResponse.json(
+        { error: "Opening balance is required" },
+        { status: 400 }
+      );
+    }
+
+    // Check if there's already an open till for this organization
+    const activeOrganizationId = session.user.activeOrganizationId;
+    const existingOpenTill = await prisma.till.findFirst({
+      where: {
+        organizationId: activeOrganizationId,
+        status: "OPEN",
+      },
+    });
+
+    if (existingOpenTill) {
+      return NextResponse.json(
+        { error: "There is already an open till for this organization" },
+        { status: 400 }
+      );
+    }
+
+    // Create a new till
+    const till = await prisma.till.create({
+      data: {
+        organizationId: activeOrganizationId,
+        openedAt: new Date(),
+        openingBalance,
+        status: "OPEN",
+        tillNumber,
+      },
+    });
+
+    return NextResponse.json({ till }, { status: 201 });
+  } catch (error) {
+    console.error("Error opening till:", error);
+    return NextResponse.json({ error: "Failed to open till" }, { status: 500 });
+  }
+}

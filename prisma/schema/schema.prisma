@@ -1,0 +1,187 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  name                 String
+  email                String             @unique
+  emailVerified        Boolean            @default(false)
+  image                String?
+  premium              Boolean            @default(false)
+  role                 UserRole           @default(user)
+  banned               Boolean            @default(false)
+  banReason            String?
+  banExpires           Int?
+  twoFactorEnabled     Boolean            @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String?
+  phoneNumber          String?            @unique
+  phoneNumberVerified  Boolean            @default(false)
+  enableSMS            Boolean            @default(true)
+  username             String             @default("DEFAULT")
+  displayUsername      String             @default("USER")
+  settings             Json?              @default("{}")
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  accounts             Account[]
+  approvedShifts       BartenderShift[]   @relation("ApprovedShifts")
+  bartenderShifts      BartenderShift[]   @relation("BartenderShifts")
+  customer             Customer?
+  driver               Driver?
+  fCMTokens            FCMToken[]
+  organizationMembers  Member[]
+  OAuthAccessToken     OAuthAccessToken[]
+  OAuthApplication     OAuthApplication[]
+  OAuthConsent         OAuthConsent[]
+  paymentIntents       PaymentIntent[]
+  salesVisit           SalesVisit[]
+  sessions             Session[]
+  auditBatches         StockAuditBatch[]
+  auditLogs            StockAuditLog[]
+  
+  // Reconciliation relations
+  disputedReconciliations   ReconciliationEntry[] @relation("DisputedReconciliations")
+  resolvedReconciliations   ReconciliationEntry[] @relation("ResolvedReconciliations")
+}
+
+model Session {
+  id                   String   @id @default(cuid())
+  userId               String
+  token                String   @unique
+  expiresAt            DateTime
+  ipAddress            String?
+  userAgent            String?
+  impersonatedBy       String?
+  activeOrganizationId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model OAuthApplication {
+  id           String             @id @default(cuid())
+  clientId     String             @unique
+  clientSecret String
+  name         String
+  redirectURLs String
+  metadata     String?
+  type         String
+  disabled     Boolean            @default(false)
+  userId       String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  accessTokens OAuthAccessToken[]
+  user         User?              @relation(fields: [userId], references: [id])
+  consents     OAuthConsent[]
+}
+
+model OAuthAccessToken {
+  id                    String           @id @default(cuid())
+  accessToken           String           @unique
+  refreshToken          String           @unique
+  previousRefreshToken  String?
+  accessTokenExpiresAt  DateTime
+  refreshTokenExpiresAt DateTime
+  clientId              String
+  userId                String
+  scopes                String
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  client                OAuthApplication @relation(fields: [clientId], references: [id])
+  user                  User             @relation(fields: [userId], references: [id])
+}
+
+model OAuthConsent {
+  id           String           @id @default(cuid())
+  userId       String
+  clientId     String
+  scopes       String
+  consentGiven Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  client       OAuthApplication @relation(fields: [clientId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  organizationId String?
+  userId         String?
+  action         String
+  resourceType   String
+  resourceId     String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, action])
+  @@index([userId, action])
+}
+
+model RegulatoryCheck {
+  id               String   @id @default(cuid())
+  organizationId   String
+  lastLicenseCheck DateTime
+  nextRenewalDate  DateTime
+  kraPinStatus     Boolean  @default(false)
+  complianceScore  Int
+}
+
+enum UserRole {
+  user
+  admin
+  distributor
+  wholesaler
+  retailer
+  driver
+  brand_owner
+}
+
+enum POSPaymentMethod {
+  CASH
+  CREDIT
+  MPESA
+  OTHER_MOBILE_MONEY
+  CARD
+  BANK
+  SPLIT_PAYMENT
+}
+
+enum SalesTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+  VIP
+}

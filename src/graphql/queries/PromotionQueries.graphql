@@ -1,0 +1,43 @@
+query Promotions($first: Int, $after: String) {
+  promotions(first: $first, after: $after) {
+    edges {
+      node {
+        ...PromotionFragment
+        rules {
+          id
+          name
+          rewardValueType
+          rewardValue
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+
+query Promotion($id: ID!) {
+  promotion(id: $id) {
+    ...PromotionFragment
+    rules {
+      ...PromotionRuleFragment
+    }
+    events {
+      ... on PromotionEventInterface {
+        type
+        date
+        createdBy {
+          ... on User {
+            id
+            email
+          }
+        }
+      }
+      ... on PromotionRuleEventInterface {
+        ruleId
+      }
+    }
+  }
+}

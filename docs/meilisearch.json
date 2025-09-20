@@ -1,0 +1,40 @@
+{
+  "results": [
+    {
+      "name": null,
+      "description": "Search API key for frontend",
+      "key": "dde2a92bc6157ba3616e24cc421968192651bb73bc033f1e973344b45f8de8ed",
+      "uid": "09d9be7e-e1fe-4c37-b9a9-d00267f136ab",
+      "actions": ["search"],
+      "indexes": ["*"],
+      "expiresAt": null,
+      "createdAt": "2025-04-18T20:32:30.014631559Z",
+      "updatedAt": "2025-04-18T20:32:30.014631559Z"
+    },
+    {
+      "name": "Default Search API Key",
+      "description": "Use it to search from the frontend",
+      "key": "0f934492ac668fcdc137611ec02f7bda0def5bec996200194c29dc52bb9f5d58",
+      "uid": "b81dc74c-4834-436c-93f3-12b05a6a31ba",
+      "actions": ["search"],
+      "indexes": ["*"],
+      "expiresAt": null,
+      "createdAt": "2025-04-18T20:29:12.488463344Z",
+      "updatedAt": "2025-04-18T20:29:12.488463344Z"
+    },
+    {
+      "name": "Default Admin API Key",
+      "description": "Use it for anything that is not a search operation. Caution! Do not expose it on a public frontend",
+      "key": "dd5e0bfa86569cdab356d3edb21328f233fd00ccda6d8fc555af6714d1e0345c",
+      "uid": "ba2866f8-0b46-4b71-a0c7-9db29b3d8161",
+      "actions": ["*"],
+      "indexes": ["*"],
+      "expiresAt": null,
+      "createdAt": "2025-04-18T20:29:12.48463937Z",
+      "updatedAt": "2025-04-18T20:29:12.48463937Z"
+    }
+  ],
+  "offset": 0,
+  "limit": 20,
+  "total": 3
+}

@@ -1,0 +1,602 @@
+import prisma from "@/lib/prisma";
+import { redis } from "@/lib/redis";
+import { clickhouse } from "@/lib/clickhouse";
+import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email";
+import { sendWhatsAppMessage } from "@/lib/whatsapp";
+
+// =============================================================================
+// INVENTORY MANAGEMENT HELPERS
+// =============================================================================
+
+export async function reserveInventory(
+  sku: string,
+  quantity: number,
+  orderId: string
+): Promise<void> {
+  try {
+    // Create inventory reservation record
+    await prisma.inventoryReservation.create({
+      data: {
+        sku,
+        quantity,
+        orderId,
+        status: 'RESERVED',
+        reservedAt: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+    });
+
+    // Update available stock in Redis
+    const cacheKey = `stock:${sku}`;
+    const currentStock = await redis.hget(cacheKey, 'available') || '0';
+    const newAvailable = Math.max(0, parseInt(currentStock) - quantity);
+    
+    await redis.hset(cacheKey, {
+      available: newAvailable.toString(),
+      reserved: (parseInt(await redis.hget(cacheKey, 'reserved') || '0') + quantity).toString(),
+      lastUpdated: new Date().toISOString(),
+    });
+
+    // Log to ClickHouse for analytics
+    await clickhouse.insert('inventory_reservations', [{
+      sku,
+      quantity,
+      order_id: orderId,
+      action: 'reserve',
+      timestamp: new Date()
+    }]);
+
+    logger.info(`Reserved ${quantity} units of ${sku} for order ${orderId}`);
+  } catch (error: any) {
+    logger.error(`Error reserving inventory for ${sku}:`, { error });
+    throw error;
+  }
+}
+
+export async function restoreInventory(
+  sku: string,
+  quantity: number,
+  orderId: string
+): Promise<void> {
+  try {
+    // Remove or update inventory reservation
+    await prisma.inventoryReservation.updateMany({
+      where: {
+        sku,
+        orderId,
+        status: 'RESERVED'
+      },
+      data: {
+        status: 'RELEASED',
+        releasedAt: new Date()
+      }
+    });
+
+    // Update available stock in Redis
+    const cacheKey = `stock:${sku}`;
+    const currentStock = await redis.hget(cacheKey, 'available') || '0';
+    const currentReserved = await redis.hget(cacheKey, 'reserved') || '0';
+    
+    await redis.hset(cacheKey, {
+      available: (parseInt(currentStock) + quantity).toString(),
+      reserved: Math.max(0, parseInt(currentReserved) - quantity).toString(),
+      lastUpdated: new Date().toISOString(),
+    });
+
+    // Log to ClickHouse for analytics
+    await clickhouse.insert('inventory_reservations', [{
+      sku,
+      quantity,
+      order_id: orderId,
+      action: 'restore',
+      timestamp: new Date()
+    }]);
+
+    logger.info(`Restored ${quantity} units of ${sku} from order ${orderId}`);
+  } catch (error: any) {
+    logger.error(`Error restoring inventory for ${sku}:`, { error });
+    throw error;
+  }
+}
+
+// =============================================================================
+// NOTIFICATION HELPERS
+// =============================================================================
+
+export async function sendOrderConfirmationEmail(order: any): Promise<void> {
+  try {
+    if (!order.userEmail) {
+      logger.warn(`No email address for order ${order.id}`);
+      return;
+    }
+
+    const emailData = {
+      to: order.userEmail,
+      subject: `Order Confirmation - ${order.number}`,
+      template: 'order-confirmation',
+      data: {
+        orderNumber: order.number,
+        customerName: order.billingAddress?.firstName || 'Valued Customer',
+        totalAmount: order.totalGrossAmount?.amount,
+        currency: order.totalGrossAmount?.currency,
+        orderLines: order.lines || [],
+        estimatedDelivery: calculateEstimatedDelivery(order),
+      }
+    };
+
+    await sendEmail(emailData);
+    
+    // Also send WhatsApp if phone number is available
+    if (order.billingAddress?.phone) {
+      await sendWhatsAppMessage(
+        order.billingAddress.phone,
+        `🎉 Order confirmed! Your order ${order.number} for KSh ${order.totalGrossAmount?.amount} is being prepared. Track at: ${process.env.FRONTEND_URL}/orders/${order.id}`
+      );
+    }
+
+    logger.info(`Order confirmation sent for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error sending order confirmation for ${order.id}:`, { error });
+  }
+}
+
+export async function sendFulfillmentNotification(order: any): Promise<void> {
+  try {
+    if (!order.userEmail) return;
+
+    const emailData = {
+      to: order.userEmail,
+      subject: `Your Order is On Its Way - ${order.number}`,
+      template: 'order-fulfilled',
+      data: {
+        orderNumber: order.number,
+        customerName: order.billingAddress?.firstName || 'Valued Customer',
+        trackingInfo: order.fulfillments?.[0]?.trackingNumber || null,
+        estimatedDelivery: calculateEstimatedDelivery(order),
+      }
+    };
+
+    await sendEmail(emailData);
+
+    // Send WhatsApp notification
+    if (order.billingAddress?.phone) {
+      const trackingText = order.fulfillments?.[0]?.trackingNumber 
+        ? `Tracking: ${order.fulfillments[0].trackingNumber}` 
+        : '';
+      
+      await sendWhatsAppMessage(
+        order.billingAddress.phone,
+        `🚚 Your order ${order.number} is on its way! ${trackingText} Expected delivery: ${calculateEstimatedDelivery(order)}`
+      );
+    }
+
+    logger.info(`Fulfillment notification sent for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error sending fulfillment notification for ${order.id}:`, { error });
+  }
+}
+
+export async function sendFulfillmentApprovalNotification(order: any, fulfillment: any): Promise<void> {
+  try {
+    if (!order.userEmail) return;
+
+    const emailData = {
+      to: order.userEmail,
+      subject: `Fulfillment Approved - ${order.number}`,
+      template: 'fulfillment-approved',
+      data: {
+        orderNumber: order.number,
+        customerName: order.billingAddress?.firstName || 'Valued Customer',
+        fulfillmentId: fulfillment.id,
+        trackingNumber: fulfillment.trackingNumber || null,
+      }
+    };
+
+    await sendEmail(emailData);
+    logger.info(`Fulfillment approval notification sent for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error sending fulfillment approval notification:`, { error });
+  }
+}
+
+export async function sendTrackingUpdateNotification(order: any, fulfillment: any): Promise<void> {
+  try {
+    if (!order.userEmail || !fulfillment.trackingNumber) return;
+
+    const emailData = {
+      to: order.userEmail,
+      subject: `Tracking Update - ${order.number}`,
+      template: 'tracking-update',
+      data: {
+        orderNumber: order.number,
+        customerName: order.billingAddress?.firstName || 'Valued Customer',
+        trackingNumber: fulfillment.trackingNumber,
+        trackingUrl: generateTrackingUrl(fulfillment.trackingNumber),
+      }
+    };
+
+    await sendEmail(emailData);
+
+    // Send WhatsApp update
+    if (order.billingAddress?.phone) {
+      await sendWhatsAppMessage(
+        order.billingAddress.phone,
+        `📦 Tracking update for order ${order.number}! Track your package: ${generateTrackingUrl(fulfillment.trackingNumber)}`
+      );
+    }
+
+    logger.info(`Tracking update notification sent for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error sending tracking update notification:`, { error });
+  }
+}
+
+// =============================================================================
+// FINANCIAL HELPERS
+// =============================================================================
+
+export async function updateFinancialRecords(order: any, type: 'PAYMENT' | 'REFUND'): Promise<void> {
+  try {
+    // Create financial transaction record
+    await prisma.financialTransaction.create({
+      data: {
+        orderId: order.id,
+        type,
+        amount: order.totalGrossAmount?.amount || 0,
+        currency: order.totalGrossAmount?.currency || 'KES',
+        status: 'COMPLETED',
+        processedAt: new Date(),
+        metadata: {
+          channel: order.channel?.slug,
+          paymentMethod: order.payments?.[0]?.gateway || 'unknown'
+        }
+      }
+    });
+
+    // Send to ClickHouse for financial analytics
+    await clickhouse.insert('financial_transactions', [{
+      order_id: order.id,
+      transaction_type: type.toLowerCase(),
+      amount: order.totalGrossAmount?.amount || 0,
+      currency: order.totalGrossAmount?.currency || 'KES',
+      channel: order.channel?.slug || 'default',
+      payment_method: order.payments?.[0]?.gateway || 'unknown',
+      timestamp: new Date()
+    }]);
+
+    logger.info(`Financial record updated for order ${order.id}: ${type}`);
+  } catch (error: any) {
+    logger.error(`Error updating financial records for order ${order.id}:`, { error });
+  }
+}
+
+export async function updateAccountingRecords(order: any, invoice: any): Promise<void> {
+  try {
+    // Create accounting entry
+    await prisma.accountingEntry.create({
+      data: {
+        orderId: order.id,
+        invoiceId: invoice.id,
+        type: 'REVENUE',
+        amount: order.totalGrossAmount?.amount || 0,
+        currency: order.totalGrossAmount?.currency || 'KES',
+        description: `Revenue from order ${order.number}`,
+        processedAt: new Date()
+      }
+    });
+
+    // Send to ClickHouse for accounting analytics
+    await clickhouse.insert('accounting_entries', [{
+      order_id: order.id,
+      invoice_id: invoice.id,
+      entry_type: 'revenue',
+      amount: order.totalGrossAmount?.amount || 0,
+      currency: order.totalGrossAmount?.currency || 'KES',
+      timestamp: new Date()
+    }]);
+
+    logger.info(`Accounting records updated for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error updating accounting records:`, { error });
+  }
+}
+
+// =============================================================================
+// FULFILLMENT HELPERS
+// =============================================================================
+
+export async function triggerFulfillmentProcess(order: any): Promise<void> {
+  try {
+    // Create fulfillment task
+    await prisma.fulfillmentTask.create({
+      data: {
+        orderId: order.id,
+        status: 'PENDING',
+        priority: determineFulfillmentPriority(order),
+        warehouseId: determineWarehouse(order),
+        createdAt: new Date(),
+        metadata: {
+          customerType: order.metadata?.customerType || 'b2c',
+          deliveryMethod: order.shippingMethod?.name || 'standard',
+          urgency: order.metadata?.priority || 'normal'
+        }
+      }
+    });
+
+    // Send to fulfillment queue
+    await redis.lpush('fulfillment_queue', JSON.stringify({
+      orderId: order.id,
+      priority: determineFulfillmentPriority(order),
+      timestamp: new Date().toISOString()
+    }));
+
+    // Notify fulfillment team
+    await notifyFulfillmentTeam(order);
+
+    logger.info(`Fulfillment process triggered for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error triggering fulfillment process for order ${order.id}:`, { error });
+  }
+}
+
+export async function updateTrackingInformation(
+  orderId: string,
+  fulfillmentId: string,
+  trackingNumber: string
+): Promise<void> {
+  try {
+    // Update tracking in database
+    await prisma.trackingInfo.upsert({
+      where: { fulfillmentId },
+      update: {
+        trackingNumber,
+        updatedAt: new Date()
+      },
+      create: {
+        orderId,
+        fulfillmentId,
+        trackingNumber,
+        carrier: determineCarrier(trackingNumber),
+        status: 'IN_TRANSIT',
+        createdAt: new Date()
+      }
+    });
+
+    // Update Redis cache
+    await redis.hset(`tracking:${orderId}`, {
+      trackingNumber,
+      fulfillmentId,
+      status: 'IN_TRANSIT',
+      lastUpdated: new Date().toISOString()
+    });
+
+    logger.info(`Tracking information updated for order ${orderId}: ${trackingNumber}`);
+  } catch (error: any) {
+    logger.error(`Error updating tracking information:`, { error });
+  }
+}
+
+// =============================================================================
+// CONVERSATION COMMERCE HELPERS
+// =============================================================================
+
+export async function updateConversationContext(orderId: string, context: string): Promise<void> {
+  try {
+    // Update conversation context in database
+    await prisma.conversationContext.upsert({
+      where: { orderId },
+      update: {
+        context,
+        updatedAt: new Date()
+      },
+      create: {
+        orderId,
+        context,
+        createdAt: new Date()
+      }
+    });
+
+    // Update Redis cache for quick access
+    await redis.hset(`conversation:${orderId}`, {
+      context,
+      lastUpdated: new Date().toISOString()
+    });
+
+    // Send to ClickHouse for conversation analytics
+    await clickhouse.insert('conversation_events', [{
+      order_id: orderId,
+      event_type: 'context_updated',
+      context,
+      timestamp: new Date()
+    }]);
+
+    logger.info(`Conversation context updated for order ${orderId}`);
+  } catch (error: any) {
+    logger.error(`Error updating conversation context:`, { error });
+  }
+}
+
+export async function updateOrderPriority(orderId: string, priority: string): Promise<void> {
+  try {
+    // Update order priority
+    await prisma.order.update({
+      where: { saleorId: orderId },
+      data: {
+        priority,
+        updatedAt: new Date()
+      }
+    });
+
+    // Update fulfillment task priority if exists
+    await prisma.fulfillmentTask.updateMany({
+      where: { orderId },
+      data: { priority }
+    });
+
+    // Update Redis cache
+    await redis.hset(`order:${orderId}`, {
+      priority,
+      lastUpdated: new Date().toISOString()
+    });
+
+    logger.info(`Order priority updated for order ${orderId}: ${priority}`);
+  } catch (error: any) {
+    logger.error(`Error updating order priority:`, { error });
+  }
+}
+
+// =============================================================================
+// CRM HELPERS
+// =============================================================================
+
+export async function addCustomerToCRM(user: any): Promise<void> {
+  try {
+    // Create customer profile
+    await prisma.customerProfile.create({
+      data: {
+        saleorId: user.id,
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phone: user.defaultBillingAddress?.phone || '',
+        preferredLanguage: user.languageCode || 'en',
+        customerType: 'B2C', // Default, can be updated later
+        status: 'ACTIVE',
+        createdAt: new Date(),
+        metadata: {
+          source: 'saleor_webhook',
+          registrationDate: user.dateJoined
+        }
+      }
+    });
+
+    // Send to ClickHouse for customer analytics
+    await clickhouse.insert('customer_profiles', [{
+      customer_id: user.id,
+      email: user.email,
+      first_name: user.firstName || '',
+      last_name: user.lastName || '',
+      registration_date: user.dateJoined || new Date().toISOString(),
+      customer_type: 'B2C',
+      timestamp: new Date()
+    }]);
+
+    // Send welcome message if phone number is available
+    if (user.defaultBillingAddress?.phone) {
+      await sendWhatsAppMessage(
+        user.defaultBillingAddress.phone,
+        `🎉 Welcome to Alcora! Your account has been created. Start shopping at ${process.env.FRONTEND_URL}`
+      );
+    }
+
+    logger.info(`Customer added to CRM: ${user.email}`);
+  } catch (error: any) {
+    logger.error(`Error adding customer to CRM:`, { error });
+  }
+}
+
+// =============================================================================
+// UTILITY HELPERS
+// =============================================================================
+
+function calculateEstimatedDelivery(order: any): string {
+  // Default delivery time based on shipping method
+  const shippingMethod = order.shippingMethod?.name?.toLowerCase() || 'standard';
+  const now = new Date();
+  
+  let deliveryDays = 3; // Default
+  
+  if (shippingMethod.includes('express')) {
+    deliveryDays = 1;
+  } else if (shippingMethod.includes('same day')) {
+    deliveryDays = 0;
+  } else if (shippingMethod.includes('next day')) {
+    deliveryDays = 1;
+  }
+  
+  const deliveryDate = new Date(now.getTime() + deliveryDays * 24 * 60 * 60 * 1000);
+  return deliveryDate.toLocaleDateString('en-KE', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+function generateTrackingUrl(trackingNumber: string): string {
+  // Generate tracking URL based on carrier
+  const carrier = determineCarrier(trackingNumber);
+  
+  switch (carrier) {
+    case 'DHL':
+      return `https://www.dhl.com/ke-en/home/tracking.html?tracking-id=${trackingNumber}`;
+    case 'FEDEX':
+      return `https://www.fedex.com/apps/fedextrack/?tracknumbers=${trackingNumber}`;
+    case 'POSTA':
+      return `https://www.posta.co.ke/track?tracking_number=${trackingNumber}`;
+    default:
+      return `${process.env.FRONTEND_URL}/track/${trackingNumber}`;
+  }
+}
+
+function determineCarrier(trackingNumber: string): string {
+  // Simple carrier detection based on tracking number format
+  if (trackingNumber.match(/^\d{10}$/)) return 'DHL';
+  if (trackingNumber.match(/^\d{12}$/)) return 'FEDEX';
+  if (trackingNumber.match(/^[A-Z]{2}\d{9}[A-Z]{2}$/)) return 'POSTA';
+  return 'CUSTOM';
+}
+
+function determineFulfillmentPriority(order: any): string {
+  // Determine priority based on order metadata and customer type
+  const metadata = order.metadata || {};
+  
+  if (metadata.priority === 'urgent') return 'HIGH';
+  if (metadata.customerType === 'b2b') return 'MEDIUM';
+  if (order.totalGrossAmount?.amount > 10000) return 'MEDIUM'; // High value orders
+  
+  return 'NORMAL';
+}
+
+function determineWarehouse(order: any): string {
+  // Simple warehouse assignment logic
+  const shippingAddress = order.shippingAddress;
+  
+  if (!shippingAddress) return 'main';
+  
+  const city = shippingAddress.city?.toLowerCase() || '';
+  
+  if (city.includes('nairobi')) return 'nairobi';
+  if (city.includes('mombasa')) return 'mombasa';
+  if (city.includes('kisumu')) return 'kisumu';
+  
+  return 'main'; // Default warehouse
+}
+
+async function notifyFulfillmentTeam(order: any): Promise<void> {
+  try {
+    // Send notification to fulfillment team via Slack/Discord/Email
+    const notification = {
+      orderId: order.id,
+      orderNumber: order.number,
+      customerEmail: order.userEmail,
+      totalAmount: order.totalGrossAmount?.amount,
+      priority: determineFulfillmentPriority(order),
+      warehouse: determineWarehouse(order),
+      timestamp: new Date().toISOString()
+    };
+
+    // Add to fulfillment notifications queue
+    await redis.lpush('fulfillment_notifications', JSON.stringify(notification));
+    
+    logger.info(`Fulfillment team notified for order ${order.id}`);
+  } catch (error: any) {
+    logger.error(`Error notifying fulfillment team:`, { error });
+  }
+}
+
+// Export all functions for use in the main webhook handler
+export {
+  // Already exported above, but listing for clarity
+};

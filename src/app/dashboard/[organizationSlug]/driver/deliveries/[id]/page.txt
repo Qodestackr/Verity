@@ -1,0 +1,545 @@
+"use client"
+
+import { useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import {
+    Truck,
+    MapPin,
+    CheckCircle2,
+    Clock,
+    Phone,
+    Package,
+    ArrowLeft,
+    Navigation,
+    CheckCheck,
+    X,
+    Camera,
+    User,
+    CreditCard,
+    Receipt,
+    MessageSquare,
+    AlertCircle,
+    Clipboard,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
+import { format } from "date-fns"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+// Mock delivery data
+const mockDelivery = {
+    id: "DEL-001",
+    orderNumber: "PO-2023-001",
+    customer: {
+        name: "Downtown Liquor Store",
+        address: "123 Main St, Nairobi",
+        phone: "+254712345678",
+        contactPerson: "James Mwangi",
+    },
+    status: "pending",
+    items: [
+        {
+            id: "item-001",
+            name: "Tusker Lager",
+            sku: "TL-001",
+            quantity: 24,
+            price: 150,
+            total: 3600,
+        },
+        {
+            id: "item-002",
+            name: "Johnnie Walker Black Label",
+            sku: "JW-001",
+            quantity: 6,
+            price: 3500,
+            total: 21000,
+        },
+    ],
+    total: 24600,
+    scheduledFor: "2023-11-27T10:00:00",
+    specialInstructions: "Please deliver before noon. Call when arriving.",
+    paymentStatus: "unpaid",
+    paymentMethod: "Cash on Delivery",
+    distance: "3.2 km",
+    estimatedTime: "15 min",
+}
+
+// Status badge component
+function DeliveryStatusBadge({ status }: { status: string }) {
+    switch (status) {
+        case "pending":
+            return (
+                <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Pending
+                </Badge>
+            )
+        case "in-transit":
+            return (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Truck className="h-3 w-3 mr-1" />
+                    In Transit
+                </Badge>
+            )
+        case "delivered":
+            return (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Delivered
+                </Badge>
+            )
+        case "failed":
+            return (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Failed
+                </Badge>
+            )
+        default:
+            return <Badge variant="outline">Unknown</Badge>
+    }
+}
+
+export default function DriverDeliveryDetailPage() {
+    const params = useParams()
+    const router = useRouter()
+    const [delivery, setDelivery] = useState(mockDelivery)
+    const [isProcessing, setIsProcessing] = useState(false)
+    const [notes, setNotes] = useState("")
+    const [failureReason, setFailureReason] = useState("")
+    const [showCamera, setShowCamera] = useState(false)
+    const [signature, setSignature] = useState<string | null>(null)
+    const [paymentAmount, setPaymentAmount] = useState(delivery.total.toString())
+    const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+
+    // Handle status update
+    const handleStatusUpdate = (newStatus: string) => {
+        setIsProcessing(true)
+
+        setTimeout(() => {
+            setDelivery({
+                ...delivery,
+                status: newStatus,
+            })
+
+            toast.success(`Delivery status updated to ${newStatus}`)
+            setIsProcessing(false)
+
+            if (newStatus === "delivered") {
+                if (delivery.paymentStatus === "unpaid" && delivery.paymentMethod === "Cash on Delivery") {
+                    setShowPaymentDialog(true)
+                }
+            }
+        }, 1000)
+    }
+
+    // Handle payment collection
+    const handlePaymentCollection = () => {
+        setIsProcessing(true)
+        setTimeout(() => {
+            setDelivery({
+                ...delivery,
+                paymentStatus: "paid",
+            })
+
+            toast.success("Payment recorded successfully")
+            setIsProcessing(false)
+            setShowPaymentDialog(false)
+        }, 1000)
+    }
+
+    // Handle failed delivery
+    const handleFailedDelivery = () => {
+        if (!failureReason) {
+            toast.error("Please provide a reason for failed delivery")
+            return
+        }
+
+        setIsProcessing(true)
+        setTimeout(() => {
+            setDelivery({
+                ...delivery,
+                status: "failed",
+                failureReason,
+            })
+
+            toast.success("Delivery marked as failed")
+            setIsProcessing(false)
+        }, 1000)
+    }
+
+    return (
+        <div className="container max-w-md mx-auto py-4 px-4 space-y-4">
+            <div className="flex items-center gap-3">
+                <Button variant="ghost" size="icon" onClick={() => router.back()} className="h-8 w-8">
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                    <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                        {delivery.customer.name}
+                        <DeliveryStatusBadge status={delivery.status} />
+                    </h1>
+                    <p className="text-xs text-muted-foreground">
+                        Order #{delivery.orderNumber} • {format(new Date(delivery.scheduledFor), "MMM d, h:mm a")}
+                    </p>
+                </div>
+            </div>
+            <Card className="overflow-hidden border-none p-0 shadow-lg">
+                <div className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-900 dark:to-slate-800 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{delivery.distance}</span>
+                            <span className="text-xs text-muted-foreground">({delivery.estimatedTime})</span>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            onClick={() => {
+                                const address = encodeURIComponent(delivery.customer.address)
+                                window.open(`https://maps.google.com/?q=${address}`, "_blank")
+                            }}
+                        >
+                            <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                            Navigate
+                        </Button>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-800 rounded-md p-3 mb-4 shadow-sm">
+                        <div className="flex items-start gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div>
+                                <p className="font-medium">{delivery.customer.address}</p>
+                                <div className="flex items-center gap-2 mt-1 text-sm">
+                                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span>{delivery.customer.contactPerson}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        {delivery.status === "pending" && (
+                            <Button
+                                onClick={() => handleStatusUpdate("in-transit")}
+                                disabled={isProcessing}
+                                className="w-full h-7 text-xs"
+                                size="sm"
+                            >
+                                <Truck className="h-4 w-4 mr-2" />
+                                Start Delivery
+                            </Button>
+                        )}
+
+                        {delivery.status === "in-transit" && (
+                            <>
+                                <Button
+                                    onClick={() => handleStatusUpdate("delivered")}
+                                    disabled={isProcessing}
+                                    className="w-full"
+                                    size="lg"
+                                >
+                                    <CheckCheck className="h-4 w-4 mr-2" />
+                                    Mark as Delivered
+                                </Button>
+
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="w-full" size="lg">
+                                            <X className="h-4 w-4 mr-2" />
+                                            Failed Delivery
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Report Failed Delivery</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="reason">Reason for Failed Delivery</Label>
+                                                <Textarea
+                                                    id="reason"
+                                                    placeholder="Enter the reason for failed delivery..."
+                                                    value={failureReason}
+                                                    onChange={(e) => setFailureReason(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" onClick={() => setFailureReason("")}>
+                                                    Cancel
+                                                </Button>
+                                                <Button onClick={handleFailedDelivery} disabled={isProcessing}>
+                                                    Submit
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </>
+                        )}
+
+                        {(delivery.status === "delivered" || delivery.status === "failed") && (
+                            <Button
+                                variant="outline"
+                                onClick={() => handleStatusUpdate("pending")}
+                                disabled={isProcessing}
+                                className="w-full"
+                                size="lg"
+                            >
+                                <Clock className="h-4 w-4 mr-2" />
+                                Reschedule Delivery
+                            </Button>
+                        )}
+                    </div>
+                </div>
+                <div className="grid grid-cols-3 divide-x border-t">
+                    <Button
+                        variant="ghost"
+                        className="h-12 rounded-none"
+                        onClick={() => {
+                            window.open(`tel:${delivery.customer.phone}`, "_blank")
+                        }}
+                    >
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call
+                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" className="h-12 rounded-none">
+                                <Camera className="h-4 w-4 mr-2" />
+                                Proof
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Capture Proof of Delivery</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-2">
+                                <div className="h-[200px] bg-muted rounded-md flex items-center justify-center">
+                                    {showCamera ? (
+                                        <div className="text-center">
+                                            <p className="text-muted-foreground mb-2">Camera Preview</p>
+                                            <Button
+                                                onClick={() => {
+                                                    toast.success("Photo captured successfully")
+                                                    setShowCamera(false)
+                                                }}
+                                            >
+                                                Capture Photo
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <Button onClick={() => setShowCamera(true)}>
+                                            <Camera className="h-4 w-4 mr-2" />
+                                            Open Camera
+                                        </Button>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="signature">Signature</Label>
+                                    <div className="h-[100px] bg-muted rounded-md flex items-center justify-center">
+                                        {signature ? (
+                                            <p className="text-muted-foreground">Signature Captured</p>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    // import SignaturePad from "react-signature-canvas"
+                                                    setSignature("captured")
+                                                    toast.success("Signature captured")
+                                                }}
+                                            >
+                                                Capture Signature
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <Button
+                                        onClick={() => {
+                                            toast.success("Proof of delivery saved")
+                                            setShowCamera(false)
+                                        }}
+                                    >
+                                        Save
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                    <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" className="h-12 rounded-none">
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Payment
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Record Payment</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="amount">Amount Collected (KES)</Label>
+                                    <Input
+                                        id="amount"
+                                        type="number"
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                                    <select
+                                        id="paymentMethod"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="mpesa">M-Pesa</option>
+                                    </select>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
+                                        Cancel
+                                    </Button>
+                                    <Button onClick={handlePaymentCollection} disabled={isProcessing}>
+                                        Confirm Payment
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </Card>
+
+            {/* Order Items */}
+            <Card className="p-0">
+                <CardContent className="p-1.5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium flex items-center">
+                            <Package className="h-4 w-4 mr-2" />
+                            Order Items
+                        </h3>
+                        <Badge variant="outline" className="text-xs">
+                            {delivery.items.length} items
+                        </Badge>
+                    </div>
+                    <div className="space-y-3">
+                        {delivery.items.map((item) => (
+                            <div key={item.id} className="flex items-center justify-between border-b pb-2 last:border-0 last:pb-0">
+                                <div>
+                                    <p className="font-medium">{item.name}</p>
+                                    <p className="text-xs text-muted-foreground">{item.sku}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-medium">{item.quantity} units</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {new Intl.NumberFormat("en-KE", {
+                                            style: "currency",
+                                            currency: "KES",
+                                        }).format(item.price)}{" "}
+                                        each
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <Separator className="my-3" />
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">Total</span>
+                        </div>
+                        <div className="text-right">
+                            <p className="font-medium">
+                                {new Intl.NumberFormat("en-KE", {
+                                    style: "currency",
+                                    currency: "KES",
+                                }).format(delivery.total)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{delivery.paymentMethod}</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            {delivery.specialInstructions && (
+                <Card className="p-0">
+                    <CardContent className="p-1.5">
+                        <div className="flex items-center gap-2 mb-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <h3 className="font-medium">Special Instructions</h3>
+                        </div>
+                        <p className="text-sm bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md text-amber-800 dark:text-amber-200">
+                            {delivery.specialInstructions}
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+            <Card className="p-0">
+                <CardContent className="p-1.5">
+                    <div className="flex items-center gap-2 mb-2">
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium">Delivery Notes</h3>
+                    </div>
+                    <Textarea
+                        placeholder="Add notes about this delivery..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="min-h-[80px] mb-3"
+                    />
+                    <div className="flex justify-end">
+                        <Button
+                            size="sm"
+                            onClick={() => {
+                                toast.success("Notes saved")
+                                setNotes("")
+                            }}
+                        >
+                            Save Notes
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardContent className="p-1.5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <Clipboard className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-normal">Delivery Checklist</h3>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <input type="checkbox" id="check1" className="h-4 w-4" />
+                            <label htmlFor="check1" className="text-sm">
+                                Verified all items are in good condition
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input type="checkbox" id="check2" className="h-4 w-4" />
+                            <label htmlFor="check2" className="text-sm">
+                                Confirmed delivery with customer
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input type="checkbox" id="check3" className="h-4 w-4" />
+                            <label htmlFor="check3" className="text-sm">
+                                Collected payment (if applicable)
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input type="checkbox" id="check4" className="h-4 w-4" />
+                            <label htmlFor="check4" className="text-sm">
+                                Obtained proof of delivery
+                            </label>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}

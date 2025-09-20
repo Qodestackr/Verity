@@ -1,0 +1,271 @@
+model AIInsight {
+  id               String           @id @default(cuid())
+  organizationId   String
+  type             AIInsightType
+  title            String
+  description      String
+  confidence       Float
+  impact           ImpactLevel      @default(MEDIUM)
+  urgency          UrgencyLevel     @default(NORMAL)
+  status           InsightStatus    @default(ACTIVE)
+  territory        String?
+  customerId       String?
+  productSku       String?
+  revenuePotential Float?
+  actionable       Boolean          @default(true)
+  actionTaken      Boolean          @default(false)
+  actionTakenAt    DateTime?
+  actionTakenBy    String?
+  dismissedAt      DateTime?
+  dismissedBy      String?
+  source           InsightSource    @default(AI_ANALYSIS)
+  sourceMessageId  String?
+  metadata         Json?
+  expiresAt        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  customer         Customer?        @relation(fields: [customerId], references: [id])
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  message          WhatsAppMessage? @relation(fields: [sourceMessageId], references: [id])
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([urgency])
+  @@index([territory])
+  @@index([createdAt])
+}
+
+model AIModelMetrics {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  modelType          String
+  version            String
+  accuracyScore      Float
+  trainingDataSize   Int
+  lastTrainedAt      DateTime
+  predictionsMade    Int          @default(0)
+  correctPredictions Int          @default(0)
+  falsePositives     Int          @default(0)
+  falseNegatives     Int          @default(0)
+  averageConfidence  Float
+  isActive           Boolean      @default(true)
+  metadata           Json?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, modelType, version])
+  @@index([organizationId])
+  @@index([modelType])
+}
+
+model AutomationRule {
+  id              String      @id @default(cuid())
+  organizationId  String
+  name            String
+  isActive        Boolean     @default(true)
+  triggerType     TriggerType
+  conditions      Json
+  actionType      ActionType
+  actionConfig    Json
+  executeAt       String?
+  cooldownMinutes Int         @default(60)
+  timesTriggered  Int         @default(0)
+  successRate     Float       @default(0)
+  avgRevenue      Float       @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([organizationId, isActive])
+  @@index([triggerType])
+}
+
+model DeadHourPattern {
+  id             String     @id @default(cuid())
+  organizationId String
+  dayOfWeek      Int
+  hourStart      Int
+  hourEnd        Int
+  severity       Float
+  bestAction     ActionType
+  avgLift        Float
+  confidence     Float
+  lastUpdated    DateTime   @default(now())
+
+  @@unique([organizationId, dayOfWeek, hourStart])
+  @@index([organizationId])
+}
+
+model AIConfiguration {
+  id                  String       @id @default(cuid())
+  organizationId      String       @unique
+  openaiApiKey        String?
+  openaiModel         String       @default("gpt-4")
+  maxTokens           Int          @default(1000)
+  temperature         Float        @default(0.7)
+  insightGeneration   Boolean      @default(true)
+  autoResponses       Boolean      @default(false)
+  sentimentAnalysis   Boolean      @default(true)
+  languageDetection   Boolean      @default(true)
+  customPrompts       Json?
+  responseTemplates   Json?
+  confidenceThreshold Float        @default(0.8)
+  learningEnabled     Boolean      @default(true)
+  dataRetentionDays   Int          @default(365)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model RealTimeMetrics {
+  id             String       @id @default(cuid())
+  organizationId String
+  metricType     String
+  metricKey      String
+  value          Float
+  previousValue  Float?
+  changePercent  Float?
+  territory      String?
+  productSku     String?
+  customerId     String?
+  timestamp      DateTime     @default(now())
+  windowStart    DateTime
+  windowEnd      DateTime
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, metricKey, timestamp])
+  @@index([organizationId])
+  @@index([metricType])
+  @@index([territory])
+  @@index([timestamp])
+}
+
+model EventStream {
+  id             String       @id @default(cuid())
+  organizationId String
+  eventType      String
+  eventId        String       @unique
+  aggregateId    String
+  aggregateType  String
+  eventData      Json
+  version        Int
+  timestamp      DateTime     @default(now())
+  processed      Boolean      @default(false)
+  processedAt    DateTime?
+  retryCount     Int          @default(0)
+  lastError      String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([aggregateId])
+  @@index([timestamp])
+  @@index([processed])
+}
+
+model AnalyticsSnapshot {
+  id             String       @id @default(cuid())
+  organizationId String
+  snapshotType   String
+  snapshotDate   DateTime
+  data           Json
+  version        Int          @default(1)
+  generatedAt    DateTime     @default(now())
+  isLatest       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, snapshotType, snapshotDate])
+  @@index([organizationId])
+  @@index([snapshotType])
+  @@index([snapshotDate])
+  @@index([isLatest])
+}
+
+model WebhookConfiguration {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  url            String
+  events         String[]
+  secret         String?
+  isActive       Boolean      @default(true)
+  lastTriggered  DateTime?
+  successCount   Int          @default(0)
+  failureCount   Int          @default(0)
+  lastError      String?
+  retryPolicy    Json?
+  headers        Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+enum AIInsightType {
+  ORDER_SUGGESTION
+  CUSTOMER_BEHAVIOR
+  SALES_OPPORTUNITY
+  INVENTORY_ALERT
+  CREDIT_RISK
+  TERRITORY_TREND
+  PRODUCT_DEMAND
+  COMPETITOR_ACTIVITY
+  SEASONAL_PATTERN
+  PRICE_OPTIMIZATION
+}
+
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum UrgencyLevel {
+  LOW
+  NORMAL
+  HIGH
+  IMMEDIATE
+}
+
+enum InsightStatus {
+  ACTIVE
+  DISMISSED
+  EXPIRED
+  ACTED_UPON
+}
+
+enum InsightSource {
+  AI_ANALYSIS
+  WHATSAPP_CONVERSATION
+  SALES_PATTERN
+  INVENTORY_DATA
+  CUSTOMER_BEHAVIOR
+  MARKET_TREND
+}
+
+enum ActionType {
+  SEND_CAMPAIGN
+  CREATE_EVENT
+  ADJUST_PRICING
+  NOTIFY_STAFF
+  UPDATE_INVENTORY
+  SCHEDULE_DELIVERY
+}
+
+enum TriggerType {
+  DEAD_HOUR_DETECTED
+  EVENT_APPROACHING
+  LOW_STOCK
+  WEATHER_CHANGE
+  COMPETITOR_ACTIVITY
+  CUSTOMER_BEHAVIOR
+  MANUAL
+}

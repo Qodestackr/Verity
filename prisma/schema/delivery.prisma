@@ -1,0 +1,258 @@
+model Driver {
+  id                   String          @id @default(cuid())
+  userId               String?         @unique
+  organizationId       String
+  name                 String
+  phone                String
+  email                String?
+  licenseNumber        String?
+  licenseExpiry        DateTime?
+  vehicleType          VehicleType     @default(MOTORBIKE)
+  vehicleDetails       Json?
+  status               DriverStatus    @default(OFFLINE)
+  currentLocation      Json?
+  rating               Float           @default(5.0)
+  totalDeliveries      Int             @default(0)
+  successfulDeliveries Int             @default(0)
+  failedDeliveries     Int             @default(0)
+  isActive             Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  deliveries           Delivery[]
+  routes               DeliveryRoute[]
+  organization         Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                 User?           @relation(fields: [userId], references: [id])
+  checkIns             DriverCheckIn[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([phone])
+}
+
+model DriverCheckIn {
+  id        String       @id @default(cuid())
+  driverId  String
+  status    DriverStatus @default(OFFLINE)
+  location  Json?
+  notes     String?
+  createdAt DateTime     @default(now())
+  driver    Driver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@index([driverId])
+  @@index([createdAt])
+}
+
+model DeliveryZone {
+  id            String          @id @default(cuid())
+  name          String
+  polygon       Json
+  isActive      Boolean         @default(true)
+  priority      Int             @default(1)
+  deliveryFee   Float           @default(0)
+  minOrder      Float?
+  maxDistance   Float?
+  campaigns     Campaign[]
+  routes        DeliveryRoute[]
+  organizations Organization[]
+
+  @@index([isActive, priority])
+}
+
+model GeoLocation {
+  id            String         @id @default(cuid())
+  latitude      Float
+  longitude     Float
+  geohash       String         @db.VarChar(12)
+  address       String?
+  city          String?
+  region        String?
+  country       String         @default("Kenya")
+  plusCode      String?
+  campaigns     Campaign[]
+  Delivery      Delivery[]
+  events        Event[]
+  organizations Organization[]
+  outlets       Outlet[]
+
+  @@index([geohash])
+  @@index([latitude, longitude])
+  @@index([city, region])
+}
+
+model Delivery {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  orderId          String?
+  driverId         String?
+  routeId          String?
+  campaignId       String?
+  saleorOrderId    String                  @unique
+  scheduledFor     DateTime
+  completedAt      DateTime?
+  customerAddress  String?
+  customerPhone    String?
+  customerName     String?
+  signatureUrl     String?
+  photoUrl         String?
+  receivedBy       String?
+  deliveryNotes    String?
+  proofOfDelivery  Json?
+  failureReason    String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  status           DeliveryStatus          @default(PENDING)
+  priority         DeliveryPriority        @default(MEDIUM)
+  estimatedTime    Int?
+  actualTime       Int?
+  distance         Float?
+  pickupLocationId String?
+  campaign         Campaign?               @relation(fields: [campaignId], references: [id])
+  driver           Driver?                 @relation(fields: [driverId], references: [id])
+  order            Order?                  @relation(fields: [orderId], references: [id])
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pickupLocation   GeoLocation?            @relation(fields: [pickupLocationId], references: [id])
+  route            DeliveryRoute?          @relation(fields: [routeId], references: [id])
+  saleorOrder      SaleorOrder             @relation(fields: [saleorOrderId], references: [saleorOrderId])
+  checklistItems   DeliveryChecklistItem[]
+  issues           DeliveryIssue[]
+  statusHistory    DeliveryStatusHistory[]
+
+  @@index([organizationId, status])
+  @@index([driverId])
+  @@index([orderId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([pickupLocationId])
+}
+
+model DeliveryStatusHistory {
+  id         String          @id @default(cuid())
+  deliveryId String
+  fromStatus DeliveryStatus?
+  toStatus   DeliveryStatus
+  changedBy  String
+  changedAt  DateTime        @default(now())
+  notes      String?
+  location   Json?
+  delivery   Delivery        @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@index([changedAt])
+}
+
+model DeliveryChecklistItem {
+  id          String    @id @default(cuid())
+  deliveryId  String
+  name        String
+  isCompleted Boolean   @default(false)
+  notes       String?
+  completedBy String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  delivery    Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+}
+
+model DeliveryIssue {
+  id          String            @id @default(cuid())
+  deliveryId  String
+  issueType   DeliveryIssueType
+  description String
+  reportedBy  String
+  status      IssueStatus       @default(OPEN)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  resolution  String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  delivery    Delivery          @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@index([status])
+}
+
+model DeliveryRoute {
+  id                String        @id @default(cuid())
+  organizationId    String
+  driverId          String
+  zoneId            String?
+  name              String
+  date              DateTime
+  status            RouteStatus   @default(PLANNED)
+  stops             Json
+  optimizationScore Float?
+  totalDistance     Float?
+  estimatedDuration Int?
+  actualDuration    Int?
+  optimizedPath     Json?
+  deliverySuccess   Float         @default(0)
+  avgDeliveryTime   Float?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deliveries        Delivery[]
+  driver            Driver        @relation(fields: [driverId], references: [id])
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  zone              DeliveryZone? @relation(fields: [zoneId], references: [id])
+
+  @@index([organizationId, date])
+  @@index([driverId, status])
+}
+
+enum VehicleType {
+  PERSONAL
+  VAN
+  TRUCK
+  MOTORBIKE
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  AT_DESTINATION
+  DELIVERED
+  CONFIRMED
+  FAILED
+  RESCHEDULED
+}
+
+enum DeliveryPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_DELIVERY
+  ON_BREAK
+  OFFLINE
+}
+
+enum DeliveryIssueType {
+  STOCK_SHORTAGE
+  VEHICLE_BREAKDOWN
+  CUSTOMER_UNAVAILABLE
+  WRONG_ADDRESS
+  PAYMENT_ISSUE
+  OTHER
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum RouteStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+    <!-- Tile Configurations -->
+    <msapplication>
+        <tile>
+            <square70x70logo src="https://alcorabooks.com/icons/ms-icon-70x70.png"/>
+            <square150x150logo src="https://alcorabooks.com/icons/ms-icon-150x150.png"/>
+            <square310x310logo src="https://alcorabooks.com/icons/ms-icon-310x310.png"/>
+            <TileColor>#0078D7</TileColor> <!-- Example brand color -->
+        </tile>
+    </msapplication>
+
+    <!-- Notification Configurations -->
+    <msapplication>
+        <notification>
+            <polling-uri src="https://alcorabooks.com/api/notifications"/>
+            <frequency>10</frequency> <!-- Poll every 10 minutes -->
+            <cycle>1</cycle> <!-- Cycle through all polling URIs -->
+        </notification>
+    </msapplication>
+</browserconfig>

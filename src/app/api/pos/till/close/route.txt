@@ -1,0 +1,84 @@
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+
+import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth.api.getSession({
+      headers: headers(),
+    });
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { tillId, closingBalance, closingNotes } = body;
+
+    if (!tillId || closingBalance === undefined) {
+      return NextResponse.json(
+        { error: "Till ID and closing balance are required" },
+        { status: 400 }
+      );
+    }
+
+    // Get the till and verify it belongs to this organization
+    const activeOrganizationId = session.user.activeOrganizationId;
+    const till = await prisma.till.findFirst({
+      where: {
+        id: tillId,
+        organizationId: activeOrganizationId,
+        status: "OPEN",
+      },
+    });
+
+    if (!till) {
+      return NextResponse.json(
+        { error: "Till not found or already closed" },
+        { status: 404 }
+      );
+    }
+
+    // Calc the expected closing balance (opening + sales)
+    const sales = await prisma.tillTransaction.aggregate({
+      where: {
+        tillId: tillId,
+        type: "SALE",
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const expectedClosingBalance =
+      till.openingBalance + (sales._sum.amount || 0);
+
+    // Close the till
+    const updatedTill = await prisma.till.update({
+      where: {
+        id: tillId,
+      },
+      data: {
+        closedAt: new Date(),
+        closingBalance,
+        closingNotes,
+        expectedClosingBalance,
+        discrepancy: closingBalance - expectedClosingBalance,
+        status: "CLOSED",
+      },
+    });
+
+    // Generate the report data
+    const report = await generateTillReport(tillId);
+
+    return NextResponse.json({ till: updatedTill, report }, { status: 200 });
+  } catch (error) {
+    console.error("Error closing till:", error);
+    return NextResponse.json(
+      { error: "Failed to close till" },
+      { status: 500 }
+    );
+  }
+}

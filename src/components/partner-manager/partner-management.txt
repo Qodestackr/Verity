@@ -1,0 +1,465 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import { Search, MapPin, List, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
+import { PartnerTable } from "./partner-table"
+import { PartnersMap } from "./partner-map"
+import { PartnerQuickView } from "./partner-quick-view"
+import { PartnerFilters } from "./partner-filters"
+import { BulkActions } from "./bulk-actions"
+import { toast } from "sonner"
+
+// Sample data for wholesalers
+const mockWholesalers = [
+    {
+        id: "WS001",
+        name: "Westlands Liquor Store",
+        type: "Premium Wholesaler",
+        status: "Active",
+        region: "Westlands",
+        phone: "+254712345678",
+        email: "john@westlandsliquor.co.ke",
+        address: "Sarit Centre, Westlands, Nairobi",
+        contactPerson: "John Mwangi",
+        tier: "Platinum",
+        creditLimit: 500000,
+        currentBalance: 124050,
+        availableCredit: 375950,
+        lastOrderDate: "2025-03-10",
+        lastOrderAmount: 124050,
+        totalSpend: 12500000,
+        totalOrders: 68,
+        bnplEnabled: true,
+        priceVisibility: true,
+        productVisibility: true,
+        notes: [
+            {
+                date: "2025-03-10",
+                author: "Jane Wanjiku",
+                content:
+                    "Met with John to discuss upcoming wine promotion. They're interested in featuring our new South African selection.",
+            },
+        ],
+        popularProducts: ["Johnnie Walker Black", "Heineken", "Grey Goose Vodka"],
+        lastVisit: "2025-03-15",
+        paymentStatus: "Good",
+        orderFrequency: "Weekly",
+        latitude: -1.2641,
+        longitude: 36.8008,
+    },
+    {
+        id: "WS002",
+        name: "Kilimani Wines & Spirits",
+        type: "Wholesaler",
+        status: "Active",
+        region: "Kilimani",
+        phone: "+254723456789",
+        email: "sarah@kilimaniwines.co.ke",
+        address: "Argwings Kodhek Rd, Kilimani, Nairobi",
+        contactPerson: "Sarah Otieno",
+        tier: "Gold",
+        creditLimit: 400000,
+        currentBalance: 235075,
+        availableCredit: 164925,
+        lastOrderDate: "2025-03-12",
+        lastOrderAmount: 235075,
+        totalSpend: 7600000,
+        totalOrders: 54,
+        bnplEnabled: false,
+        priceVisibility: true,
+        productVisibility: true,
+        notes: [
+            {
+                date: "2025-03-12",
+                author: "David Kimani",
+                content:
+                    "Sarah mentioned plans to expand store by taking over adjacent space. Looking to increase wine selection.",
+            },
+        ],
+        popularProducts: ["Johnnie Walker Black", "Moët & Chandon", "Corona Extra"],
+        lastVisit: "2025-03-14",
+        paymentStatus: "Good",
+        orderFrequency: "Bi-weekly",
+        latitude: -1.2873,
+        longitude: 36.7822,
+    },
+    {
+        id: "WS003",
+        name: "Karen Liquor Hub",
+        type: "Boutique Wholesaler",
+        status: "Active",
+        region: "Karen",
+        phone: "+254734567890",
+        email: "robert@karenliquorhub.co.ke",
+        address: "Karen Shopping Centre, Karen, Nairobi",
+        contactPerson: "Robert Kamau",
+        tier: "Gold",
+        creditLimit: 350000,
+        currentBalance: 98025,
+        availableCredit: 251975,
+        lastOrderDate: "2025-03-14",
+        lastOrderAmount: 98025,
+        totalSpend: 5800000,
+        totalOrders: 48,
+        bnplEnabled: true,
+        priceVisibility: false,
+        productVisibility: true,
+        notes: [
+            {
+                date: "2025-03-14",
+                author: "Jane Wanjiku",
+                content: "Robert is interested in expanding their whiskey selection. Planning a tasting event next month.",
+            },
+        ],
+        popularProducts: ["Macallan 12 Year", "Dom Pérignon", "Hendrick's Gin"],
+        lastVisit: "2025-03-10",
+        paymentStatus: "Good",
+        orderFrequency: "Monthly",
+        latitude: -1.3152,
+        longitude: 36.7116,
+    },
+    {
+        id: "WS004",
+        name: "CBD Spirits Emporium",
+        type: "Wholesaler",
+        status: "Active",
+        region: "CBD",
+        phone: "+254745678901",
+        email: "daniel@cbdspirits.co.ke",
+        address: "Kenyatta Avenue, CBD, Nairobi",
+        contactPerson: "Daniel Mutua",
+        tier: "Platinum",
+        creditLimit: 600000,
+        currentBalance: 187500,
+        availableCredit: 412500,
+        lastOrderDate: "2025-03-15",
+        lastOrderAmount: 187500,
+        totalSpend: 18500000,
+        totalOrders: 92,
+        bnplEnabled: true,
+        priceVisibility: true,
+        productVisibility: true,
+        notes: [
+            {
+                date: "2025-03-15",
+                author: "David Kimani",
+                content:
+                    "Daniel mentioned they're opening a second location in Upperhill next quarter. Will need to discuss supply logistics.",
+            },
+        ],
+        popularProducts: ["Tusker Lager", "Kenya Cane", "Gilbey's Gin"],
+        lastVisit: "2025-03-16",
+        paymentStatus: "Good",
+        orderFrequency: "Weekly",
+        latitude: -1.2921,
+        longitude: 36.8219,
+    },
+    {
+        id: "WS005",
+        name: "Eastlands Drinks Depot",
+        type: "Wholesaler",
+        status: "Active",
+        region: "Eastleigh",
+        phone: "+254756789012",
+        email: "hassan@eastlandsdrinks.co.ke",
+        address: "1st Avenue, Eastleigh, Nairobi",
+        contactPerson: "Hassan Mohamed",
+        tier: "Platinum",
+        creditLimit: 800000,
+        currentBalance: 75050,
+        availableCredit: 724950,
+        lastOrderDate: "2025-03-15",
+        lastOrderAmount: 75050,
+        totalSpend: 22000000,
+        totalOrders: 88,
+        bnplEnabled: false,
+        priceVisibility: false,
+        productVisibility: true,
+        notes: [
+            {
+                date: "2025-03-15",
+                author: "Jane Wanjiku",
+                content: "Hassan requested information on upcoming promotions. Sent details on April beer promotion.",
+            },
+        ],
+        popularProducts: ["Tusker Lager", "Chrome Vodka", "Kibao Vodka"],
+        lastVisit: "2025-03-12",
+        paymentStatus: "Good",
+        orderFrequency: "Weekly",
+        latitude: -1.2728,
+        longitude: 36.8502,
+    },
+    {
+        id: "WS009",
+        name: "Langata Beverage Center",
+        type: "Wholesaler",
+        status: "Inactive",
+        region: "Langata",
+        phone: "+254712345678",
+        email: "peter@langatadrinksstore.co.ke",
+        address: "Langata Road, Langata, Nairobi",
+        contactPerson: "Peter Kinyanjui",
+        tier: "Silver",
+        creditLimit: 0,
+        currentBalance: 85000,
+        availableCredit: 0,
+        lastOrderDate: "2024-11-10",
+        lastOrderAmount: 45000,
+        totalSpend: 1500000,
+        totalOrders: 22,
+        bnplEnabled: false,
+        priceVisibility: false,
+        productVisibility: false,
+        notes: [
+            {
+                date: "2024-12-10",
+                author: "David Kimani",
+                content: "Peter mentioned financial difficulties. Store may close in early 2025 if situation doesn't improve.",
+            },
+        ],
+        popularProducts: ["Tusker Lager", "Summit Lager", "Chrome Vodka"],
+        lastVisit: "2024-12-05",
+        paymentStatus: "Overdue",
+        orderFrequency: "Monthly",
+        latitude: -1.3505,
+        longitude: 36.7344,
+    },
+]
+
+export function PartnerManagement() {
+    // State for view mode
+    const [viewMode, setViewMode] = useState<"table" | "map">("table")
+
+    // State for wholesalers and filtering
+    const [wholesalers, setWholesalers] = useState(mockWholesalers)
+    const [searchQuery, setSearchQuery] = useState("")
+    const [statusFilter, setStatusFilter] = useState("all")
+    const [regionFilter, setRegionFilter] = useState("all")
+    const [tierFilter, setTierFilter] = useState("all")
+    const [sortOrder, setSortOrder] = useState("name-asc")
+    const [selectedWholesalers, setSelectedWholesalers] = useState<string[]>([])
+
+    // State for drawer and quick view
+    const [quickViewOpen, setQuickViewOpen] = useState(false)
+    const [selectedWholesaler, setSelectedWholesaler] = useState<any>(null)
+
+    // Filter wholesalers based on search and filters
+    const filteredWholesalers = useMemo(() => {
+        let result = [...wholesalers]
+
+        // Apply search filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase()
+            result = result.filter(
+                (wholesaler) =>
+                    wholesaler.name.toLowerCase().includes(query) ||
+                    wholesaler.id.toLowerCase().includes(query) ||
+                    wholesaler.region.toLowerCase().includes(query) ||
+                    wholesaler.contactPerson.toLowerCase().includes(query),
+            )
+        }
+
+        // Apply status filter
+        if (statusFilter !== "all") {
+            result = result.filter((wholesaler) => wholesaler.status === statusFilter)
+        }
+
+        // Apply region filter
+        if (regionFilter !== "all") {
+            result = result.filter((wholesaler) => wholesaler.region === regionFilter)
+        }
+
+        // Apply tier filter
+        if (tierFilter !== "all") {
+            result = result.filter((wholesaler) => wholesaler.tier === tierFilter)
+        }
+
+        // Apply sorting
+        switch (sortOrder) {
+            case "name-asc":
+                result.sort((a, b) => a.name.localeCompare(b.name))
+                break
+            case "name-desc":
+                result.sort((a, b) => b.name.localeCompare(a.name))
+                break
+            case "value-asc":
+                result.sort((a, b) => a.totalSpend - b.totalSpend)
+                break
+            case "value-desc":
+                result.sort((a, b) => b.totalSpend - a.totalSpend)
+                break
+            case "recent":
+                result.sort((a, b) => new Date(b.lastOrderDate).getTime() - new Date(a.lastOrderDate).getTime())
+                break
+            case "balance-desc":
+                result.sort((a, b) => b.currentBalance - a.currentBalance)
+                break
+        }
+
+        return result
+    }, [wholesalers, searchQuery, statusFilter, regionFilter, tierFilter, sortOrder])
+
+    // Toggle wholesaler selection
+    const toggleWholesalerSelection = (wholesalerId: string) => {
+        setSelectedWholesalers((prev) => {
+            if (prev.includes(wholesalerId)) {
+                return prev.filter((id) => id !== wholesalerId)
+            } else {
+                return [...prev, wholesalerId]
+            }
+        })
+    }
+
+    // Select all wholesalers
+    const selectAllWholesalers = () => {
+        if (selectedWholesalers.length === filteredWholesalers.length) {
+            setSelectedWholesalers([])
+        } else {
+            setSelectedWholesalers(filteredWholesalers.map((wholesaler) => wholesaler.id))
+        }
+    }
+
+    // Handle wholesaler click
+    const handleWholesalerClick = (wholesaler: any) => {
+        setSelectedWholesaler(wholesaler)
+        setQuickViewOpen(true)
+    }
+
+    // Toggle BNPL for a wholesaler
+    const toggleBNPL = (wholesalerId: string) => {
+        const updatedWholesalers = wholesalers.map((w) => {
+            if (w.id === wholesalerId) {
+                return { ...w, bnplEnabled: !w.bnplEnabled }
+            }
+            return w
+        })
+        setWholesalers(updatedWholesalers)
+
+        const wholesaler = wholesalers.find((w) => w.id === wholesalerId)
+        const newStatus = !wholesaler?.bnplEnabled
+
+        toast.success(`BNPL ${newStatus ? "enabled" : "disabled"}`, {
+            description: `${newStatus ? "Enabled" : "Disabled"} BNPL for ${wholesaler?.name}`,
+        })
+    }
+
+    // Toggle price visibility for a wholesaler
+    const togglePriceVisibility = (wholesalerId: string) => {
+        const updatedWholesalers = wholesalers.map((w) => {
+            if (w.id === wholesalerId) {
+                return { ...w, priceVisibility: !w.priceVisibility }
+            }
+            return w
+        })
+        setWholesalers(updatedWholesalers)
+
+        const wholesaler = wholesalers.find((w) => w.id === wholesalerId)
+        const newStatus = !wholesaler?.priceVisibility
+
+        toast.success(`Price visibility ${newStatus ? "enabled" : "disabled"}`, {
+            description: `${wholesaler?.name} can ${newStatus ? "now" : "no longer"} view prices`,
+        })
+    }
+
+    return (
+        <div className="container mx-auto px-4 py-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-xl font-light tracking-tight">Management Your Business Partners</h1>
+                    <p className="text-muted-foreground text-sm">Manage your clients/partners and their permissions</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewMode("table")}
+                        className={cn(viewMode === "table" ? "bg-teal-50 text-teal-700 border-teal-200" : "")}
+                    >
+                        <List className="h-4 w-4 mr-2" />
+                        Table
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewMode("map")}
+                        className={cn(viewMode === "map" ? "bg-teal-50 text-teal-700 border-teal-200" : "")}
+                    >
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Map
+                    </Button>
+
+                    <Separator orientation="vertical" className="h-6" />
+
+                    <Button className="bg-teal-600 hover:bg-teal-700">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Partner
+                    </Button>
+                </div>
+            </div>
+
+            {/* Filters and search */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+                <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search partners..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <PartnerFilters
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    regionFilter={regionFilter}
+                    setRegionFilter={setRegionFilter}
+                    tierFilter={tierFilter}
+                    setTierFilter={setTierFilter}
+                    sortOrder={sortOrder}
+                    setSortOrder={setSortOrder}
+                />
+            </div>
+
+            {/* Bulk Actions */}
+            {selectedWholesalers.length > 0 && (
+                <BulkActions selectedCount={selectedWholesalers.length} onClearSelection={() => setSelectedWholesalers([])} />
+            )}
+
+            {/* Wholesalers View */}
+            {viewMode === "table" && (
+                <PartnerTable
+                    partners={filteredWholesalers}
+                    formatCurrency={formatCurrency}
+                    selectedPartners={selectedWholesalers}
+                    onSelectAll={selectAllWholesalers}
+                    onSelectPartner={toggleWholesalerSelection}
+                    onPartnerClick={handleWholesalerClick}
+                    onToggleBNPL={toggleBNPL}
+                    onTogglePriceVisibility={togglePriceVisibility}
+                />
+            )}
+
+            {viewMode === "map" && (
+                <PartnersMap partners={filteredWholesalers} onPartnerClick={handleWholesalerClick} />
+            )}
+
+            {/* Wholesaler Quick View */}
+            <PartnerQuickView
+                open={quickViewOpen}
+                onOpenChange={setQuickViewOpen}
+                partner={selectedWholesaler}
+                formatCurrency={formatCurrency}
+                onToggleBNPL={(id: string) => toggleBNPL(id)}
+                onTogglePriceVisibility={(id: string) => togglePriceVisibility(id)}
+            />
+        </div>
+    )
+}

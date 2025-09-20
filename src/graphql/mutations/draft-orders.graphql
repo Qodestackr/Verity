@@ -1,0 +1,130 @@
+mutation DraftOrderCreate($input: DraftOrderCreateInput!) {
+  draftOrderCreate(input: $input) {
+    order {
+      id
+      token
+      number
+      status
+      lines {
+        id
+        productName
+        variantName
+        quantity
+        unitPrice {
+          gross {
+            amount
+            currency
+          }
+        }
+      }
+      total {
+        gross {
+          amount
+          currency
+        }
+      }
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
+
+# Update a draft order
+mutation DraftOrderUpdate($id: ID!, $input: DraftOrderInput!) {
+  draftOrderUpdate(id: $id, input: $input) {
+    order {
+      id
+      number
+      status
+      userEmail
+      customerNote
+      status
+      isPaid
+      lines {
+        variant {
+          id
+        }
+      }
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
+
+# Add lines to a draft order
+mutation DraftOrderLinesCreate($id: ID!, $lines: [OrderLineCreateInput!]!) {
+  orderLinesCreate(id: $id, input: $lines) {
+    order {
+      id
+      number
+      status
+      lines {
+        id
+        productName
+        variantName
+        quantity
+      }
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
+
+# Delete a line from a draft order
+mutation DraftOrderLineDelete($lineId: ID!) {
+  orderLineDelete(id: $lineId) {
+    order {
+      id
+      number
+      status
+    }
+    orderLine {
+      id
+      productName
+      quantity
+    }
+    errors {
+      field
+      message
+    }
+  }
+}
+
+# Complete a draft order
+mutation OrderCreateFromDraftOrder($id: ID!) {
+  draftOrderComplete(id: $id) {
+    order {
+      id
+      status
+      number
+      total {
+        gross {
+          amount
+          currency
+        }
+      }
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
+
+# Delete a draft order
+mutation DraftOrderDelete($id: ID!) {
+  draftOrderDelete(id: $id) {
+    errors {
+      field
+      message
+      code
+    }
+  }
+}

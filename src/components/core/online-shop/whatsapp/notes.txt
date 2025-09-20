@@ -1,0 +1,5 @@
+We have a long way to go with WhatsApp API. From deciding the cheapest route and it definitely aint an MVP feature.
+With large customer base, its easy to become a Meta business partner and use cheaper Meta Cloud APIs instead of wrappers
+like Gushup, Dialog360, Wati or Others (Sukhiba). They rarely update pricing terms
+business should be able to configure and get started with "MANAGE WhatsApp ORDERS" via dash (We dont have this and we wont have anytime soon)
+For now, this guides the direction we wish to take..

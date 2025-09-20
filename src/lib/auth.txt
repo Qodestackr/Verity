@@ -1,0 +1,122 @@
+import { betterAuth, type BetterAuthOptions } from "better-auth";
+import {
+  createAuthMiddleware,
+} from "better-auth/plugins";
+
+import { reactResetPasswordEmail } from "@/components/emails/reset-password-email";
+import { resend } from "@/lib/resend";
+
+import { createAuthConfig, SessionConnectionHandlerHook, UserConnectionHandlerHook } from "./auth-config";
+
+const from = process.env.BETTER_AUTH_EMAIL || "online@alcorabooks.com";
+const to = process.env.TEST_EMAIL || "";
+
+export const auth = betterAuth({
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      console.log("Middleware executed in:", ctx.path);
+      // Handle newly authenticated users
+      if (ctx.path.startsWith("/sign-up") || ctx.path.startsWith("/sign-in")) {
+        const newSession = ctx.context.newSession;
+        if (newSession) {
+          ctx.setCookie(
+            "Set-Cookie",
+            `session_token=${ctx.context.authCookies.sessionToken}; Path=/; HttpOnly; SameSite=Strict`
+          );
+          // Check if user has pending onboarding
+          // const org = await getOrganizationByUserId(newSession.user.id);
+          // TODO: Check if user already has settings
+          const org = {} as any;
+          if (org && org.metadata?.pendingOnboarding) {
+            // Store onboarding state in session....
+          }
+        }
+      }
+    }),
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: UserConnectionHandlerHook
+      },
+    },
+    session: {
+      create: {
+        after: SessionConnectionHandlerHook
+      },
+    },
+  },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: true,
+        defaultValue: "user",
+        input: true,
+      },
+      premium: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+      },
+      phoneNumber: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+      enableSMS: {
+        type: "boolean",
+        required: false,
+        defaultValue: true,
+        input: true,
+      },
+    },
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailVerification: async (
+        { user, newEmail, url, token },
+        request
+      ) => {
+        console.log("TODO: CHANGE EMAIL");
+      },
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    async sendVerificationEmail({ user, url }) {
+      // const verificationUrl = `${process.env.BETTER_AUTH_URL}/api/auth/verify-email?token=${token}&callbackURL=${process.env.EMAIL_VERIFICATION_CALLBACK_URL}`;
+      const res = await resend.emails.send({
+        from,
+        to: to || user.email,
+        subject: "Verify your email address",
+        html: `<a href="${url}">Verify your email address</a>`,
+      });
+      console.log(res, user.email);
+    },
+  },
+  emailAndPassword: {
+    enabled: true,
+    // requireEmailVerification: true,
+    async sendResetPassword({ user, url }) {
+      await resend.emails.send({
+        from,
+        to: user.email,
+        subject: "Reset your password",
+        react: reactResetPasswordEmail({
+          username: user.email,
+          resetLink: url,
+        }),
+      });
+    },
+  },
+  ...createAuthConfig(),
+} satisfies BetterAuthOptions);
+
+export const createAuth = () => {
+  return auth;
+};
+
+export type Auth = ReturnType<typeof createAuth>;

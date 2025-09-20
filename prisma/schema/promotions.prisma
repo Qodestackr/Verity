@@ -1,0 +1,196 @@
+model Event {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  type           EventType
+  locationId     String?
+  radius         Float?
+  scheduledFor   DateTime
+  duration       Int?
+  autoPromote    Boolean      @default(true)
+  promoStartTime Int          @default(180)
+  offerType      OfferType?
+  offerValue     Float?
+  requiredEmoji  String?
+  freeItem       String?
+  minQuantity    Int?
+  campaigns      Campaign[]
+  location       GeoLocation? @relation(fields: [locationId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, scheduledFor])
+  @@index([type, scheduledFor])
+}
+
+model Campaign {
+  id               String             @id @default(cuid())
+  organizationId   String
+  eventId          String?
+  name             String
+  type             CampaignType
+  status           CampaignStatus     @default(DRAFT)
+  triggerRules     Json?
+  isAIGenerated    Boolean            @default(false)
+  aiConfidence     Float?
+  triggerType      TriggerType?
+  targetSegment    Json?
+  minOrderValue    Float?
+  targetTiers      SalesTier[]
+  locationId       String?
+  targetRadius     Float?
+  targetZoneId     String?
+  targetLocationId String?
+  scheduledFor     DateTime?
+  autoSendAt       DateTime?
+  message          String
+  platforms        Platform[]
+  title            String
+  description      String
+  offerType        OfferType
+  discountValue    Float?
+  discountPercent  Float?
+  sent             Int                @default(0)
+  delivered        Int                @default(0)
+  opened           Int                @default(0)
+  replied          Int                @default(0)
+  converted        Int                @default(0)
+  revenue          Float              @default(0)
+  impressions      Int                @default(0)
+  clicks           Int                @default(0)
+  conversions      Int                @default(0)
+  startDate        DateTime?          @default(now())
+  endDate          DateTime?
+  event            Event?             @relation(fields: [eventId], references: [id])
+  targetLocation   GeoLocation?       @relation(fields: [locationId], references: [id])
+  organization     Organization       @relation(fields: [organizationId], references: [id])
+  targetZone       DeliveryZone?      @relation(fields: [targetZoneId], references: [id])
+  products         CampaignProduct[]
+  responses        CampaignResponse[]
+  deliveries       Delivery[]
+  outlets          Outlet[]           @relation("CampaignToOutlet")
+
+  @@index([organizationId, status])
+  @@index([scheduledFor])
+  @@index([triggerType])
+  @@index([startDate, endDate])
+  @@index([targetZoneId])
+}
+
+model CampaignProduct {
+  id         String   @id @default(cuid())
+  campaignId String
+  productId  String
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@unique([campaignId, productId])
+}
+
+model CampaignResponse {
+  id          String   @id @default(cuid())
+  campaignId  String
+  customerId  String
+  platform    Platform
+  message     String
+  quantity    Int?
+  isConverted Boolean  @default(false)
+  orderValue  Float?
+  respondedAt DateTime @default(now())
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+
+  @@index([campaignId])
+  @@index([customerId])
+  @@index([isConverted])
+}
+
+model VoucherRedemption {
+  id            String    @id @default(cuid())
+  customerId    String
+  voucherId     String
+  orderId       String?
+  amountApplied Float
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+  redeemedAt    DateTime  @default(now())
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  voucher       Voucher   @relation(fields: [voucherId], references: [id])
+
+  @@index([voucherId])
+  @@index([customerId])
+  @@index([orderId])
+}
+
+model Voucher {
+  id              String              @id @default(cuid())
+  organizationId  String
+  code            String              @unique
+  discountType    DiscountType
+  discountValue   Float
+  minimumPurchase Float?
+  startDate       DateTime
+  endDate         DateTime
+  maxUses         Int?
+  usedCount       Int                 @default(0)
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  redemptions     VoucherRedemption[]
+
+  @@index([organizationId])
+  @@index([code])
+  @@index([startDate, endDate])
+}
+
+enum EventType {
+  MUGITHI_NIGHT
+  RHUMBA_EVENING
+  KARAOKE_NIGHT
+  LIVE_BAND
+  DJ_NIGHT
+  SPORTS_VIEWING
+  HAPPY_HOUR
+  CULTURAL_EVENT
+  PRIVATE_PARTY
+  CORPORATE_EVENT
+}
+
+enum OfferType {
+  BUY_X_GET_FREE_ITEM
+  PERCENTAGE_DISCOUNT
+  FIXED_DISCOUNT
+  BUNDLE_DEAL
+  LOYALTY_POINTS
+  FIXED_AMOUNT
+  BUY_X_GET_Y
+  FREE_DELIVERY
+  BULK_DISCOUNT
+}
+
+enum CampaignType {
+  EVENT_PROMOTION
+  DEAD_HOUR_BOOST
+  LOYALTY_NUDGE
+  RESTOCK_ALERT
+  FLASH_SALE
+  SEASONAL_PUSH
+  PRODUCT_LAUNCH
+  REACTIVATION
+  UPSELL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum Platform {
+  WHATSAPP
+  FACEBOOK
+  INSTAGRAM
+  SMS
+}

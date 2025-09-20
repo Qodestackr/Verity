@@ -1,0 +1,179 @@
+model WhatsAppIntegration {
+  id                String            @id @default(cuid())
+  organizationId    String            @unique
+  phoneNumberId     String
+  businessAccountId String
+  accessToken       String
+  webhookToken      String
+  isActive          Boolean           @default(true)
+  isVerified        Boolean           @default(false)
+  verifiedAt        DateTime?
+  lastSyncAt        DateTime?
+  messageQuotaUsed  Int               @default(0)
+  messageQuotaLimit Int               @default(1000)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  contacts          WhatsAppContact[]
+  organization      Organization      @relation(fields: [organizationId], references: [id])
+  messages          WhatsAppMessage[]
+
+  @@index([organizationId])
+  @@index([phoneNumberId])
+}
+
+model WhatsAppMessage {
+  id                String                @id @default(cuid())
+  organizationId    String
+  integrationId     String
+  whatsappMessageId String                @unique
+  from              String
+  to                String
+  body              String
+  type              WhatsAppMessageType   @default(TEXT)
+  status            MessageStatus         @default(SENT)
+  timestamp         DateTime              @default(now())
+  mediaUrl          String?
+  mediaType         String?
+  isFromCustomer    Boolean               @default(true)
+  conversationId    String?
+  replyToMessageId  String?
+  aiProcessed       Boolean               @default(false)
+  aiConfidence      Float?
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  contactId         String?
+  aiInsights        AIInsight[]
+  orders            ConversationalOrder[]
+  contact           WhatsAppContact?      @relation(fields: [contactId], references: [id])
+  integration       WhatsAppIntegration   @relation(fields: [integrationId], references: [id])
+  organization      Organization          @relation("MessageOrg", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([from])
+  @@index([to])
+  @@index([conversationId])
+  @@index([timestamp])
+  @@index([aiProcessed])
+}
+
+model WhatsAppContact {
+  id                String                @id @default(cuid())
+  organizationId    String
+  integrationId     String
+  phoneNumber       String
+  name              String?
+  profilePicture    String?
+  lastSeen          DateTime?
+  isOnline          Boolean               @default(false)
+  isBlocked         Boolean               @default(false)
+  customerId        String?
+  salesRepId        String?
+  territory         String?
+  lastMessageAt     DateTime?
+  messageCount      Int                   @default(0)
+  orderCount        Int                   @default(0)
+  totalSpent        Float                 @default(0)
+  creditLimit       Float                 @default(0)
+  creditUsed        Float                 @default(0)
+  riskScore         Float                 @default(0.5)
+  preferredLanguage String?               @default("en")
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  orders            ConversationalOrder[]
+  customer          Customer?             @relation(fields: [customerId], references: [id])
+  integration       WhatsAppIntegration   @relation(fields: [integrationId], references: [id])
+  organization      Organization          @relation("ContactOrg", fields: [organizationId], references: [id], onDelete: Cascade)
+  whatsAppMessages  WhatsAppMessage[]
+
+  @@unique([organizationId, phoneNumber])
+  @@index([organizationId])
+  @@index([phoneNumber])
+  @@index([salesRepId])
+  @@index([territory])
+}
+
+model ConversationalOrder {
+  id                 String                    @id @default(cuid())
+  organizationId     String
+  whatsappMessageId  String?
+  contactId          String?
+  customerId         String?
+  orderNumber        String                    @unique
+  status             ConversationalOrderStatus @default(DRAFT)
+  totalAmount        Float                     @default(0)
+  currency           String                    @default("KES")
+  paymentMethod      POSPaymentMethod?
+  paymentStatus      PaymentStatus             @default(PENDING)
+  deliveryAddress    String?
+  deliveryNotes      String?
+  conversationData   Json?
+  aiSuggestions      Json?
+  confirmedAt        DateTime?
+  deliveredAt        DateTime?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  contact            WhatsAppContact?          @relation(fields: [contactId], references: [id])
+  customer           Customer?                 @relation(fields: [customerId], references: [id])
+  organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  message            WhatsAppMessage?          @relation(fields: [whatsappMessageId], references: [id])
+  items              ConversationalOrderItem[]
+
+  @@index([organizationId])
+  @@index([contactId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ConversationalOrderItem {
+  id                    String              @id @default(cuid())
+  conversationalOrderId String
+  productId             String
+  productName           String
+  sku                   String?
+  quantity              Int
+  unitPrice             Float
+  totalPrice            Float
+  discount              Float               @default(0)
+  aiSuggested           Boolean             @default(false)
+  customerRequested     Boolean             @default(true)
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  conversationalOrder   ConversationalOrder @relation(fields: [conversationalOrderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationalOrderId])
+  @@index([productId])
+}
+
+enum WhatsAppMessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  LOCATION
+  CONTACT
+  STICKER
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+enum ConversationalOrderStatus {
+  DRAFT
+  PENDING_CONFIRMATION
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}

@@ -1,0 +1,127 @@
+model BartenderShift {
+  id                    String             @id @default(cuid())
+  organizationId        String
+  bartenderId           String
+  tillId                String?
+  shiftNumber           String
+  startTime             DateTime           @default(now())
+  endTime               DateTime?
+  duration              Int?
+  status                ShiftStatus        @default(ACTIVE)
+  openingCashBalance    Float              @default(0)
+  openingMpesaBalance   Float              @default(0)
+  openingTotalBalance   Float              @default(0)
+  closingCashBalance    Float?
+  closingMpesaBalance   Float?
+  closingTotalBalance   Float?
+  totalSales            Float              @default(0)
+  cashSales             Float              @default(0)
+  mpesaSales            Float              @default(0)
+  cardSales             Float              @default(0)
+  creditSales           Float              @default(0)
+  expectedCashInHand    Float?
+  actualCashInHand      Float?
+  cashVariance          Float?
+  varianceReason        String?
+  mpesaTransactionRefs  Json?
+  mpesaReconciledAmount Float?
+  mpesaVariance         Float?
+  openingNotes          String?
+  closingNotes          String?
+  issues                Json?
+  isApproved            Boolean            @default(false)
+  approvedBy            String?
+  approvedAt            DateTime?
+  rejectionReason       String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  approver              User?              @relation("ApprovedShifts", fields: [approvedBy], references: [id])
+  bartender             User               @relation("BartenderShifts", fields: [bartenderId], references: [id])
+  organization          Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  till                  POSTill?           @relation(fields: [tillId], references: [id])
+  expenses              ShiftExpense[]
+  summaries             ShiftSummary?
+  transactions          ShiftTransaction[]
+
+  @@unique([organizationId, shiftNumber])
+  @@index([organizationId, status])
+  @@index([bartenderId, startTime])
+  @@index([status, startTime])
+}
+
+model ShiftTransaction {
+  id                String           @id @default(cuid())
+  shiftId           String
+  transactionId     String?
+  amount            Float
+  paymentMethod     POSPaymentMethod
+  transactionRef    String?
+  customerName      String?
+  items             Json
+  timestamp         DateTime         @default(now())
+  isVerified        Boolean          @default(false)
+  verifiedBy        String?
+  verificationNotes String?
+  shift             BartenderShift   @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([shiftId, timestamp])
+  @@index([paymentMethod])
+  @@index([transactionRef])
+}
+
+model ShiftExpense {
+  id          String          @id @default(cuid())
+  shiftId     String
+  categoryId  String
+  description String
+  amount      Float
+  receipt     String?
+  approvedBy  String?
+  notes       String?
+  timestamp   DateTime        @default(now())
+  category    ExpenseCategory @relation(fields: [categoryId], references: [id])
+  shift       BartenderShift  @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([shiftId])
+  @@index([categoryId])
+}
+
+model ShiftSummary {
+  id                      String         @id @default(cuid())
+  shiftId                 String         @unique
+  organizationId          String
+  totalTransactions       Int
+  averageTransactionValue Float
+  peakHour                Int?
+  topSellingItems         Json
+  salesPerHour            Float
+  customerCount           Int?
+  averageItemsPerSale     Float
+  alerts                  Json?
+  insights                Json?
+  summaryEmailSent        Boolean        @default(false)
+  summaryWhatsAppSent     Boolean        @default(false)
+  sentAt                  DateTime?
+  createdAt               DateTime       @default(now())
+  organization            Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  shift                   BartenderShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+}
+
+enum ShiftStatus {
+  ACTIVE
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum ShiftPaymentMethod {
+  CASH
+  MPESA
+  CARD
+  CREDIT
+  BANK_TRANSFER
+  OTHER
+}

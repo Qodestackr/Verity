@@ -1,0 +1,280 @@
+"use client"
+
+import { useState } from "react"
+import {
+    Truck,
+    Search,
+    MapPin,
+    CheckCircle2,
+    Clock,
+    Navigation,
+    Package,
+    ArrowRight,
+    AlertCircle,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { format } from "date-fns"
+import { useRouter } from "next/navigation"
+import { useOrganizationSlug } from "@/hooks/use-organization-slug"
+
+export default function DriverDeliveriesPage() {
+    const router = useRouter()
+    const [activeTab, setActiveTab] = useState("today")
+    const [searchQuery, setSearchQuery] = useState("")
+
+    const organizationSlug = useOrganizationSlug()
+
+    // Mock data for deliveries
+    const deliveries = [
+        {
+            id: "DEL-001",
+            orderNumber: "PO-2023-001",
+            customer: {
+                name: "Downtown Liquor Store",
+                address: "123 Main St, Nairobi",
+                phone: "+254712345678",
+            },
+            status: "pending",
+            items: 2,
+            total: 24600,
+            scheduledFor: "2023-11-27T10:00:00",
+            distance: "3.2 km",
+            estimatedTime: "15 min",
+        },
+        {
+            id: "DEL-002",
+            orderNumber: "PO-2023-002",
+            customer: {
+                name: "Westlands Wine & Spirits",
+                address: "456 Westlands Rd, Nairobi",
+                phone: "+254723456789",
+            },
+            status: "in-transit",
+            items: 2,
+            total: 35040,
+            scheduledFor: "2023-11-26T14:00:00",
+            distance: "1.5 km",
+            estimatedTime: "8 min",
+        },
+        {
+            id: "DEL-003",
+            orderNumber: "PO-2023-003",
+            customer: {
+                name: "Karen Wines & Spirits",
+                address: "789 Karen Rd, Nairobi",
+                phone: "+254734567890",
+            },
+            status: "delivered",
+            items: 2,
+            total: 69000,
+            scheduledFor: "2023-11-25T09:00:00",
+            deliveredAt: "2023-11-25T09:45:00",
+            distance: "8.7 km",
+            estimatedTime: "25 min",
+        },
+        {
+            id: "DEL-004",
+            orderNumber: "PO-2023-004",
+            customer: {
+                name: "Eastleigh Beverages",
+                address: "101 Eastleigh Ave, Nairobi",
+                phone: "+254745678901",
+            },
+            status: "failed",
+            items: 2,
+            total: 29280,
+            scheduledFor: "2023-11-24T11:00:00",
+            failureReason: "Customer not available",
+            distance: "5.3 km",
+            estimatedTime: "20 min",
+        },
+        {
+            id: "DEL-005",
+            orderNumber: "PO-2023-005",
+            customer: {
+                name: "Kilimani Liquor Store",
+                address: "202 Kilimani Rd, Nairobi",
+                phone: "+254756789012",
+            },
+            status: "pending",
+            items: 2,
+            total: 48600,
+            scheduledFor: "2023-11-28T13:00:00",
+            distance: "4.1 km",
+            estimatedTime: "18 min",
+        },
+    ]
+
+    // Filter deliveries based on active tab and search query
+    const filteredDeliveries = deliveries.filter((delivery) => {
+        const matchesSearch =
+            delivery.customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            delivery.customer.address.toLowerCase().includes(searchQuery.toLowerCase())
+
+        if (activeTab === "today") {
+            const today = new Date().toISOString().split("T")[0]
+            const deliveryDate = new Date(delivery.scheduledFor).toISOString().split("T")[0]
+            return deliveryDate === today && matchesSearch
+        } else if (activeTab === "pending") {
+            return delivery.status === "pending" && matchesSearch
+        } else if (activeTab === "in-transit") {
+            return delivery.status === "in-transit" && matchesSearch
+        } else if (activeTab === "completed") {
+            return (delivery.status === "delivered" || delivery.status === "failed") && matchesSearch
+        }
+
+        return matchesSearch
+    })
+
+    // Get status badge
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case "pending":
+                return (
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Pending
+                    </Badge>
+                )
+            case "in-transit":
+                return (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <Truck className="h-3 w-3 mr-1" />
+                        In Transit
+                    </Badge>
+                )
+            case "delivered":
+                return (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Delivered
+                    </Badge>
+                )
+            case "failed":
+                return (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Failed
+                    </Badge>
+                )
+            default:
+                return <Badge variant="outline">Unknown</Badge>
+        }
+    }
+
+    return (
+        <div className="container max-w-md mx-auto py-2 px-4 space-y-2">
+            <div>
+                <h1 className="text-xl font-light tracking-tight">My Deliveries</h1>
+                <p className="text-sm text-muted-foreground">Manage your delivery tasks</p>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search deliveries..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+
+            {/* Tabs */}
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid grid-cols-4 mb-4">
+                    <TabsTrigger value="today">Today</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="in-transit">Active</TabsTrigger>
+                    <TabsTrigger value="completed">Completed</TabsTrigger>
+                </TabsList>
+
+                {/* Tab Content */}
+                <TabsContent value={activeTab} className="space-y-4">
+                    {filteredDeliveries.length === 0 ? (
+                        <div className="text-center py-8">
+                            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                            <h3 className="font-medium text-lg">No deliveries found</h3>
+                            <p className="text-sm text-muted-foreground">
+                                {activeTab === "today"
+                                    ? "You have no deliveries scheduled for today."
+                                    : `No ${activeTab} deliveries match your search.`}
+                            </p>
+                        </div>
+                    ) : (
+                        filteredDeliveries.map((delivery) => (
+                            <Card
+                                key={delivery.id}
+                                className="p-0 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => router.push(`/dashboard/${organizationSlug}/driver/deliveries/${delivery.id}`)}
+                            >
+                                <CardContent className="p-0">
+                                    <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <Truck className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-medium">{delivery.customer.name}</h3>
+                                                <div className="text-xs text-muted-foreground">
+                                                    {format(new Date(delivery.scheduledFor), "h:mm a")}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(delivery.status)}
+                                    </div>
+
+                                    <div className="p-4 space-y-3">
+                                        <div className="flex items-start gap-2">
+                                            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                            <span className="text-sm">{delivery.customer.address}</span>
+                                        </div>
+
+                                        <div className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-1">
+                                                <Package className="h-4 w-4 text-muted-foreground" />
+                                                <span>{delivery.items} items</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Navigation className="h-4 w-4 text-muted-foreground" />
+                                                <span>{delivery.distance}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                                <span>{delivery.estimatedTime}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-2">
+                                            <Button
+                                                size="sm"
+                                                className="h-7 text-xs"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    const address = encodeURIComponent(delivery.customer.address)
+                                                    window.open(`https://maps.google.com/?q=${address}`, "_blank")
+                                                }}
+                                            >
+                                                <Navigation className="h-3.5 w-3.5 mr-1.5" />
+                                                Navigate
+                                            </Button>
+
+                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                                <ArrowRight className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))
+                    )}
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
+}

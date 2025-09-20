@@ -1,0 +1,219 @@
+model Outlet {
+  id               String       @id @default(cuid())
+  organizationId   String
+  name             String
+  outletType       OutletType   @default(RETAIL_SHOP)
+  locationId       String
+  isActive         Boolean      @default(true)
+  lastVisitDate    DateTime?
+  nextVisitDate    DateTime?
+  avgFootfall      Int          @default(0)
+  peakHours        Json?
+  competitorCount  Int          @default(0)
+  avgMonthlyVolume Float        @default(0)
+  orders           Order[]
+  location         GeoLocation  @relation(fields: [locationId], references: [id])
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  visits           SalesVisit[]
+  campaigns        Campaign[]   @relation("CampaignToOutlet")
+
+  @@index([organizationId])
+  @@index([locationId])
+}
+
+model Product {
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  sku              String?
+  price            Float
+  cost             Float?
+  stockQuantity    Int?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  wholesalePrice   Float
+  retailPrice      Float
+  distributorPrice Float?
+  popularityScore  Float             @default(0)
+  seasonalityData  Json?
+  demandByRegion   Json?
+  campaignProducts CampaignProduct[]
+  inventoryItems   InventoryItem[]
+  orderItems       OrderItem[]
+
+  @@index([sku])
+}
+
+model Order {
+  id                String           @id @default(cuid())
+  organizationId    String
+  customerId        String?
+  orderNumber       String           @unique
+  status            OrderStatus      @default(PENDING)
+  totalAmount       Float
+  discountAmount    Float            @default(0)
+  taxAmount         Float            @default(0)
+  shippingAmount    Float            @default(0)
+  finalAmount       Float
+  paymentMethod     POSPaymentMethod @default(MPESA)
+  paymentStatus     PaymentStatus    @default(PENDING)
+  notes             String?
+  saleorOrderId     String?          @unique
+  posTransactionId  String?
+  orderDate         DateTime         @default(now())
+  fulfillmentStatus String           @default("unfulfilled")
+  fulfillmentDate   DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  outletId          String?
+  orderType         OrderType        @default(B2C)
+  retailerOrgId     String?
+  supplierOrgId     String?
+  deliveries        Delivery[]
+  customer          Customer?        @relation(fields: [customerId], references: [id])
+  organization      Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Outlet            Outlet?          @relation(fields: [outletId], references: [id])
+  items             OrderItem[]
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([orderDate])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([saleorOrderId])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  discount   Float    @default(0)
+  costAtSale Float? // <- OPTIONAL: For accurate historical COGS
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model POSProduct {
+  id              String           @id @default(cuid())
+  organizationId  String
+  saleorProductId String
+  costPrice       Float
+  lowStockAlert   Int              @default(5)
+  isPopular       Boolean          @default(false)
+  barcode         String?
+  salesRank       Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions    POSTransaction[] @relation("ProductTransactions")
+
+  @@index([organizationId])
+  @@index([saleorProductId])
+  @@index([barcode])
+}
+
+model POSTill {
+  id             String           @id @default(cuid())
+  organizationId String
+  tillNumber     String
+  isOpen         Boolean          @default(false)
+  openingBalance Float            @default(0)
+  closingBalance Float?
+  openedAt       DateTime?
+  closedAt       DateTime?
+  notes          String?
+  shifts         BartenderShift[]
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions   POSTransaction[]
+
+  @@unique([organizationId, tillNumber])
+  @@index([organizationId, isOpen])
+}
+
+model POSTransaction {
+  id             String               @id @default(cuid())
+  tillId         String
+  organizationId String
+  saleorOrderId  String?
+  amount         Float
+  paymentMethod  POSPaymentMethod
+  customerId     String?
+  isForPickup    Boolean              @default(false)
+  receiptNumber  String               @unique
+  status         POSTransactionStatus @default(COMPLETED)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  customer       Customer?            @relation(fields: [customerId], references: [id])
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  till           POSTill              @relation(fields: [tillId], references: [id])
+  products       POSProduct[]         @relation("ProductTransactions")
+
+  @@index([organizationId])
+  @@index([tillId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model POSDailyReport {
+  id                String       @id @default(cuid())
+  organizationId    String
+  tillId            String?
+  date              DateTime
+  totalSales        Float
+  totalTransactions Int
+  paymentBreakdown  Json
+  productSales      Json
+  reportData        Json
+  createdAt         DateTime     @default(now())
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date, tillId])
+  @@index([organizationId, date])
+}
+
+model POSDevice {
+  id             String  @id @default(cuid())
+  organizationId String
+  lastLocation   Json?
+  offlineMode    Boolean @default(true)
+}
+
+enum OutletType {
+  RETAIL_SHOP
+  SUPERMARKET
+  RESTAURANT
+  BAR_CLUB
+  HOTEL
+  WHOLESALE_DEPOT
+}
+
+enum OrderType {
+  B2C
+  B2B
+  POS
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum POSTransactionStatus {
+  COMPLETED
+  PENDING
+  REFUNDED
+  CANCELED
+}

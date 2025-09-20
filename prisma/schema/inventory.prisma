@@ -1,0 +1,197 @@
+model Warehouse {
+  id                String          @id @default(cuid())
+  organizationId    String
+  saleorWarehouseId String?         @unique
+  name              String
+  isPrimary         Boolean         @default(false)
+  isDefault         Boolean         @default(false)
+  isActive          Boolean         @default(true)
+  address           String?
+  city              String?
+  region            String?
+  country           String?         @default("Kenya")
+  description       String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  inventoryItems    InventoryItem[]
+  StockAuditLog     StockAuditLog[]
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([saleorWarehouseId])
+}
+
+model InventoryItem {
+  id              String    @id @default(cuid())
+  warehouseId     String
+  productId       String
+  saleorProductId String?
+  saleorVariantId String?
+  sku             String?
+  barcode         String?
+  quantity        Int       @default(0)
+  minStockLevel   Int       @default(0)
+  maxStockLevel   Int?
+  costPrice       Float?
+  sellingPrice    Float     @default(1)
+  isActive        Boolean   @default(true)
+  lastStockCheck  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  Product         Product   @relation(fields: [productId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId])
+  @@index([warehouseId])
+  @@index([productId])
+  @@index([saleorProductId])
+  @@index([sku])
+  @@index([barcode])
+}
+
+model StockAuditLog {
+  id                String           @id @default(cuid())
+  timestamp         DateTime         @default(now())
+  sku               String
+  productName       String?
+  variantName       String?
+  previousStock     Int
+  quantityChange    Int
+  currentStock      Int
+  unitCost          Decimal          @db.Decimal(10, 2)
+  totalCost         Decimal          @db.Decimal(10, 2)
+  source            AuditSource
+  reference         String?
+  notes             String?
+  userId            String
+  warehouseId       String
+  supplierId        String?
+  locationId        String?
+  status            StockAuditStatus @default(COMPLETED)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  batchId           String?
+  previousPrice     Decimal?         @db.Decimal(10, 2)
+  priceChange       Decimal?         @db.Decimal(10, 2)
+  currentPrice      Decimal?         @db.Decimal(10, 2)
+  previousCostPrice Decimal?         @db.Decimal(10, 2)
+  costPriceChange   Decimal?         @db.Decimal(10, 2)
+  currentCostPrice  Decimal?         @db.Decimal(10, 2)
+  saleorVariantId   String?
+  saleorProductId   String?
+  saleorChannelId   String?
+  batch             StockAuditBatch? @relation(fields: [batchId], references: [id])
+  location          Location?        @relation(fields: [locationId], references: [id])
+  supplier          Supplier?        @relation(fields: [supplierId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
+  warehouse         Warehouse        @relation(fields: [warehouseId], references: [id])
+
+  @@index([sku])
+  @@index([timestamp])
+  @@index([source])
+  @@index([reference])
+  @@index([userId])
+  @@index([warehouseId])
+  @@index([saleorVariantId])
+}
+
+model OrganizationSyncStatus {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  channelSlug          String
+  bootstrapDetected    Boolean  @default(false)
+  bootstrapDetectedAt  DateTime?
+  bootstrapFailed      Boolean  @default(false)
+  lastError           String?
+  lastSyncAt          DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, channelSlug], name: "organizationId_channelSlug")
+  @@map("organization_sync_status")
+}
+
+model StockAuditBatch {
+  id               String            @id @default(cuid())
+  timestamp        DateTime          @default(now())
+  source           AuditSource
+  reference        String?
+  notes            String?
+  userId           String
+  status           StockAuditStatus  @default(COMPLETED)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  supplierId       String?
+  receiptNumber    String?
+  deliveryDate     DateTime?
+  paymentStatus    PaymentStatus?
+  paymentMethod    POSPaymentMethod?
+  orderNumber      String?
+  sourceLocationId String?
+  targetLocationId String?
+  sourceLocation   Location?         @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  supplier         Supplier?         @relation(fields: [supplierId], references: [id])
+  targetLocation   Location?         @relation("TargetLocation", fields: [targetLocationId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  auditLogs        StockAuditLog[]
+
+  @@index([timestamp])
+  @@index([source])
+  @@index([reference])
+}
+
+model RedisCacheEntry {
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  productName String
+  variantName String?
+  imageUrl    String?
+  category    String?
+  lastUpdated DateTime @default(now()) @updatedAt
+  ttl         Int?
+
+  @@index([sku])
+}
+
+model Location {
+  id            String            @id @default(cuid())
+  name          String
+  code          String            @unique
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  sourceBatches StockAuditBatch[] @relation("SourceLocation")
+  targetBatches StockAuditBatch[] @relation("TargetLocation")
+  auditLogs     StockAuditLog[]
+}
+
+model Supplier {
+  id            String            @id @default(cuid())
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  auditBatches  StockAuditBatch[]
+  auditLogs     StockAuditLog[]
+}
+
+enum StockAuditStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum AuditSource {
+  POS
+  RECEIVE
+  ONBOARDING
+  MANUAL
+  WEBHOOK
+  ADJUSTMENT
+  TRANSFER
+  RETURN
+  LOSS
+}

@@ -1,0 +1,96 @@
+model SaleorChannel {
+  id                 String        @id @default(cuid())
+  organizationId     String
+  name               String
+  saleorChannelId    String?       @unique
+  slug               String
+  currencyCode       String        @default("KES")
+  isActive           Boolean       @default(true)
+  defaultWarehouseId String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  organization       Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orders             SaleorOrder[]
+
+  @@index([organizationId])
+  @@index([saleorChannelId])
+}
+
+model QuickBooksIntegration {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  realmId        String
+  accessToken    String
+  refreshToken   String
+  expiresAt      DateTime
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model SaleorSync {
+  id         String   @id @default(cuid())
+  entityType String
+  saleorId   String
+  alcoraId   String
+  lastSyncAt DateTime @default(now())
+  syncStatus String   @default("synced")
+
+  @@unique([entityType, saleorId])
+  @@index([entityType, syncStatus])
+}
+
+model SaleorOrder {
+  id                      String                   @id @default(cuid())
+  saleorOrderId           String                   @unique
+  saleorChannelId         String
+  organizationId          String
+  saleorStatus            SaleorOrderStatus        @default(UNCONFIRMED)
+  saleorFulfillmentStatus SaleorFulfillmentStatus?
+  orderNumber             String?
+  totalAmount             Float
+  currency                String                   @default("KES")
+  customerEmail           String?
+  customerPhone           String?
+  shippingAddress         Json?
+  buyerOrgId              String?
+  sellerOrgId             String?
+  orderType               String?
+  depot                   String?
+  route                   String?
+  driverName              String?
+  deliveryDate            DateTime?
+  saleorCreatedAt         DateTime
+  saleorUpdatedAt         DateTime
+  lastSyncAt              DateTime                 @default(now())
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  costAllocations         CostAllocation[]
+  delivery                Delivery?
+  MarginAlert             MarginAlert[]
+  channel                 SaleorChannel            @relation(fields: [saleorChannelId], references: [saleorChannelId])
+  lineItems               SaleorOrderLine[]
+  unitEconomics           UnitEconomics?
+
+  @@index([saleorOrderId])
+  @@index([organizationId])
+  @@index([saleorStatus])
+  @@index([buyerOrgId, sellerOrgId])
+}
+
+enum SaleorOrderStatus {
+  DRAFT
+  UNCONFIRMED
+  UNFULFILLED
+  PARTIALLY_FULFILLED
+  FULFILLED
+  CANCELED
+}
+
+enum SaleorFulfillmentStatus {
+  PENDING
+  CONFIRMED
+  REFUNDED
+  RETURNED
+}

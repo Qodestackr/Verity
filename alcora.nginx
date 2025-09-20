@@ -1,0 +1,174 @@
+# ====================
+# Global HTTP Redirect
+# ====================
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+# ===========================
+# Force HTTPS for all domains
+# ===========================
+server {
+    listen 80;
+    server_name alcorabooks.com www.alcorabooks.com commerce.alcorabooks.com search.alcorabooks.com;
+
+    return 301 https://$host$request_uri;
+}
+
+# ================================
+# Default HTTPS block (reject all)
+# ================================
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    ssl_certificate /etc/letsencrypt/live/alcorabooks.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/alcorabooks.com/privkey.pem;
+    return 444;
+}
+
+# ====================
+# Main Next.js Website
+# ====================
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name alcorabooks.com www.alcorabooks.com;
+
+    ssl_certificate /etc/letsencrypt/live/alcorabooks.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/alcorabooks.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    location /_next/static {
+        alias /var/www/Alcorabooks/.next/static;
+        expires 1y;
+        access_log off;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location /static {
+        alias /var/www/Alcorabooks/public/static;
+        expires 1y;
+        access_log off;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        send_timeout 60s;
+
+        proxy_buffer_size 16k;
+        proxy_buffers 4 32k;
+        proxy_busy_buffers_size 64k;
+    }
+
+    location /api/saleor/token {
+        proxy_pass http://localhost:3000/api/saleor/token;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    error_page 500 502 503 504 /500.html;
+    location = /500.html {
+        root /var/www/Alcorabooks/public;
+        internal;
+    }
+
+    access_log /var/log/nginx/alcora.access.log;
+    error_log /var/log/nginx/alcora.error.log;
+}
+
+# =====================
+# Meilisearch Subdomain
+# =====================
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name search.alcorabooks.com;
+
+    ssl_certificate /etc/letsencrypt/live/alcorabooks.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/alcorabooks.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location / {
+        proxy_pass http://46.202.130.243:7700;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    access_log /var/log/nginx/search.access.log;
+    error_log /var/log/nginx/search.error.log;
+}
+
+# =====================
+# Saleor Commerce Admin
+# =====================
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name commerce.alcorabooks.com;
+
+    ssl_certificate /etc/letsencrypt/live/alcorabooks.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/alcorabooks.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_read_timeout 120s;
+        send_timeout 120s;
+
+        proxy_buffer_size 32k;
+        proxy_buffers 8 32k;
+        proxy_busy_buffers_size 64k;
+    }
+
+    access_log /var/log/nginx/commerce.access.log;
+    error_log /var/log/nginx/commerce.error.log;
+}

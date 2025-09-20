@@ -1,0 +1,25 @@
+mutation ShippingZoneCreate($input: ShippingZoneCreateInput!) {
+  shippingZoneCreate(input: $input) {
+    shippingZone {
+      ...ShippingZoneDetails
+    }
+    errors {
+      ...ShippingZoneError
+    }
+  }
+}
+
+mutation ShippingZoneUpdate($id: ID!, $input: ShippingZoneUpdateInput!) {
+  shippingZoneUpdate(id: $id, input: $input) {
+    shippingZone {
+      ...ShippingZoneDetails
+    }
+    errors {
+      ...ShippingZoneError
+    }
+  }
+}
+
+###################
+#  shippingZoneUpdate
+##################

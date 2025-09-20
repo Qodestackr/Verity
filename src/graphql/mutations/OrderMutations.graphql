@@ -1,0 +1,26 @@
+mutation ConfirmOrder($id: ID!) {
+  orderConfirm(id: $id) {
+    order {
+      status
+    }
+    errors {
+      message
+    }
+  }
+}
+
+mutation FulfillOrder($order: ID!, $input: OrderFulfillInput!) {
+  orderFulfill(order: $order, input: $input) {
+    order {
+      id
+      status
+    }
+    fulfillments {
+      id
+    }
+    errors {
+      field
+      message
+    }
+  }
+}

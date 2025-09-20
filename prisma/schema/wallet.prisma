@@ -1,0 +1,137 @@
+model Wallet {
+  id             String              @id @default(cuid())
+  customerId     String              @unique
+  balance        Float               @default(0)
+  pendingBalance Float               @default(0)
+  lockedBalance  Float               @default(0)
+  dailyLimit     Float               @default(10000)
+  monthlyLimit   Float               @default(50000)
+  dailySpent     Float               @default(0)
+  monthlySpent   Float               @default(0)
+  lastResetDate  DateTime            @default(now())
+  isActive       Boolean             @default(true)
+  isBlocked      Boolean             @default(false)
+  blockedReason  String?
+  blockedAt      DateTime?
+  pin            String?
+  currency       String              @default("KES")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  version        Int                 @default(1)
+  customer       Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  topUps         WalletTopUp[]
+  transactions   WalletTransaction[]
+
+  @@index([customerId])
+  @@index([isActive, isBlocked])
+}
+
+model WalletTransaction {
+  id            String                @id @default(cuid())
+  walletId      String
+  type          WalletTransactionType
+  amount        Float
+  balanceBefore Float
+  balanceAfter  Float
+  description   String
+  orderId       String?
+  topUpId       String?
+  refundId      String?
+  referenceId   String?
+  status        TransactionStatus     @default(PENDING)
+  failureReason String?
+  processedAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  wallet        Wallet                @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([orderId])
+}
+
+model WalletTopUp {
+  id               String              @id @default(cuid())
+  walletId         String
+  amount           Float
+  paymentMethod    WalletPaymentMethod
+  paymentReference String?
+  status           TransactionStatus   @default(PENDING)
+  failureReason    String?
+  processedAt      DateTime?
+  externalId       String?
+  providerResponse Json?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  wallet           Wallet              @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+}
+
+model WalletPromotion {
+  id             String              @id @default(cuid())
+  organizationId String
+  name           String
+  description    String
+  type           WalletPromotionType
+  minTopUpAmount Float?
+  maxCashback    Float?
+  cashbackRate   Float?
+  fixedAmount    Float?
+  startDate      DateTime
+  endDate        DateTime
+  isActive       Boolean             @default(true)
+  usageLimit     Int?
+  usageCount     Int                 @default(0)
+  customerTiers  CustomerTier[]
+  minOrderValue  Float?
+  productIds     String[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([startDate, endDate])
+}
+
+enum WalletTransactionType {
+  TOP_UP
+  PURCHASE
+  REFUND
+  CASHBACK
+  PENALTY
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum WalletPaymentMethod {
+  MPESA
+  AIRTEL_MONEY
+  CARD
+  BANK_TRANSFER
+  CASH_DEPOSIT
+  ADMIN_CREDIT
+}
+
+enum WalletPromotionType {
+  TOP_UP_BONUS
+  CASHBACK
+  FIRST_TIME
+  LOYALTY_REWARD
+}

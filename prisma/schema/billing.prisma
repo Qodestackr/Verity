@@ -1,0 +1,295 @@
+model BusinessDocument {
+  id             String         @id @default(cuid())
+  organizationId String
+  type           DocumentType
+  name           String
+  status         DocumentStatus @default(PENDING)
+  fileUrl        String
+  mimeType       String?
+  fileSize       Int?
+  isVerified     Boolean        @default(false)
+  verifiedAt     DateTime?
+  verifiedBy     String?
+  expiryDate     DateTime?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model RequiredDocument {
+  id            String         @id @default(cuid())
+  name          String
+  description   String?
+  businessTypes BusinessType[]
+  isRequired    Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Subscription {
+  id                 String                @id @default(cuid())
+  organizationId     String                @unique
+  planId             String
+  status             SubscriptionStatus    @default(ACTIVE)
+  startDate          DateTime              @default(now())
+  endDate            DateTime?
+  trialEndDate       DateTime?
+  currentPeriodStart DateTime              @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean               @default(false)
+  canceledAt         DateTime?
+  paymentMethodId    String?
+  lastPaymentDate    DateTime?
+  nextBillingDate    DateTime
+  failedPayments     Int                   @default(0)
+  metadata           Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  invoices           Invoice[]
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  paymentMethod      PaymentMethodDetails? @relation(fields: [paymentMethodId], references: [id])
+  plan               SubscriptionPlan      @relation(fields: [planId], references: [id])
+
+  @@index([organizationId])
+  @@index([planId])
+  @@index([status])
+  @@index([nextBillingDate])
+}
+
+model SubscriptionPlan {
+  id                    String          @id @default(cuid())
+  name                  String
+  description           String?
+  price                 Float
+  currency              String          @default("KES")
+  interval              BillingInterval @default(MONTH)
+  intervalCount         Int             @default(1)
+  trialPeriodDays       Int?
+  features              Json?
+  businessType          BusinessType?
+  tier                  PlanTier        @default(STANDARD)
+  isActive              Boolean         @default(true)
+  maxSeats              Int?            // Maximum seats allowed (null = unlimited)
+  includedSeats         Int             @default(1) // Base seats included in plan
+  additionalSeatPrice   Float?          // Price per additional seat beyond included
+  seatBillingInterval   BillingInterval? // How additional seats are billed
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  organization          Organization[]
+  subscriptions         Subscription[]
+
+  @@unique([name, businessType, tier])
+  @@index([businessType])
+  @@index([tier])
+  @@index([isActive])
+}
+
+model PaymentMethodDetails {
+  id             String            @id @default(cuid())
+  organizationId String
+  type           PaymentMethodType
+  provider       PaymentProvider   @default(COOP_BANK)
+  isDefault      Boolean           @default(false)
+  lastFour       String?
+  expiryMonth    Int?
+  expiryYear     Int?
+  cardBrand      String?
+  accountName    String?
+  accountNumber  String?
+  bankCode       String?
+  phoneNumber    String?
+  email          String?
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscriptions  Subscription[]
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  organizationId  String
+  subscriptionId  String
+  number          String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  currency        String        @default("KES")
+  amount          Float
+  tax             Float         @default(0)
+  amountPaid      Float         @default(0)
+  amountDue       Float
+  dueDate         DateTime
+  paidAt          DateTime?
+  description     String?
+  receiptUrl      String?
+  paymentIntentId String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription    Subscription  @relation(fields: [subscriptionId], references: [id])
+  payments        Payment[]
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model Payment {
+  id                String            @id @default(cuid())
+  invoiceId         String
+  amount            Float
+  currency          String            @default("KES")
+  status            PaymentStatus     @default(PENDING)
+  paymentMethodType PaymentMethodType
+  provider          PaymentProvider
+  providerPaymentId String?
+  providerFee       Float?
+  metadata          Json?
+  failureReason     String?
+  receiptUrl        String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  invoice           Invoice           @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([providerPaymentId])
+  @@index([provider, status])
+  @@index([createdAt])
+}
+
+model BillingContact {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  name           String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  postalCode     String?
+  country        String?      @default("Kenya")
+  taxId          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model OnboardingPreference {
+  id                String                 @id @default(cuid())
+  organizationId    String                 @unique
+  currentStep       Int                    @default(0)
+  isComplete        Boolean                @default(false)
+  completedAt       DateTime?
+  businessType      BusinessType?
+  importMethod      InventoryImportMethod? @default(API)
+  subscriptionPlan  PlanTier?
+  paymentMethod     PaymentProvider?
+  teamEmails        String?
+  warehouseName     String?
+  warehouseLocation String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  organization      Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model PaymentIntent {
+  id                String       @id @default(cuid())
+  merchantRequestId String       @unique
+  checkoutRequestId String?
+  organizationId    String
+  userId            String
+  purpose           String
+  amount            Float
+  currency          String       @default("KES")
+  phoneNumber       String
+  status            String       @default("PENDING")
+  expiresAt         DateTime
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([merchantRequestId])
+  @@index([organizationId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([purpose])
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum BillingInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum PlanTier {
+  FREE
+  STANDARD
+  PREMIUM
+  ENTERPRISE
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_ACCOUNT
+  BANK_TRANSFER
+  MPESA
+  OTHER
+}
+
+enum PaymentProvider {
+  COOP_BANK
+  MPESA
+  STRIPE
+  PAYSTACK
+  OTHER
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  UNPAID
+  CANCELED
+  TRIALING
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+enum InventoryImportMethod {
+  MANUAL
+  CSV
+  API
+}
+
+enum DocumentType {
+  LIQUOR_LICENSE
+  BUSINESS_REGISTRATION
+  TAX_CERTIFICATE
+  IDENTITY_DOCUMENT
+  PROOF_OF_ADDRESS
+  OTHER
+}

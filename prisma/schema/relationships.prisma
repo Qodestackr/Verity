@@ -1,0 +1,163 @@
+model BusinessRelationship {
+  id                String                    @id @default(cuid())
+  requesterId       String
+  targetId          String
+  status            RelationshipStatus        @default(PENDING)
+  type              RelationshipType          @default(GENERAL)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  lastInteractionAt DateTime?
+  notes             String?
+  requester         Organization              @relation("RequestedRelationships", fields: [requesterId], references: [id], onDelete: Cascade)
+  target            Organization              @relation("ReceivedRelationships", fields: [targetId], references: [id], onDelete: Cascade)
+  interactions      RelationshipInteraction[]
+  permissions       RelationshipPermission[]
+
+  @@unique([requesterId, targetId])
+  @@index([requesterId])
+  @@index([targetId])
+  @@index([status])
+}
+
+model RelationshipPermission {
+  id             String               @id @default(cuid())
+  relationshipId String
+  permissionType PermissionType
+  isGranted      Boolean              @default(false)
+  scope          PermissionScope      @default(ALL)
+  scopeIds       String[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  relationship   BusinessRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@unique([relationshipId, permissionType])
+  @@index([relationshipId])
+}
+
+model RelationshipInteraction {
+  id             String               @id @default(cuid())
+  relationshipId String
+  type           InteractionType
+  initiatedById  String
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+  relationship   BusinessRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId])
+  @@index([createdAt])
+}
+
+model ConnectionRequest {
+  id                    String           @id @default(cuid())
+  senderId              String
+  recipientEmail        String
+  recipientName         String?
+  recipientBusinessName String?
+  message               String?
+  status                InvitationStatus @default(PENDING)
+  token                 String           @unique
+  expiresAt             DateTime
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  sender                Organization     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([token])
+}
+
+model VisibilitySettings {
+  id                              String       @id @default(cuid())
+  organizationId                  String       @unique
+  isDiscoverable                  Boolean      @default(true)
+  showContactInfo                 Boolean      @default(true)
+  showProducts                    Boolean      @default(true)
+  showPricing                     Boolean      @default(false)
+  defaultNewConnectionPermissions Json?
+  createdAt                       DateTime     @default(now())
+  updatedAt                       DateTime     @updatedAt
+  organization                    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model ProductVisibility {
+  id             String       @id @default(cuid())
+  organizationId String
+  productId      String
+  isPublic       Boolean      @default(true)
+  visibleToIds   String[]
+  hiddenFromIds  String[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, productId])
+  @@index([organizationId])
+  @@index([productId])
+}
+
+model PriceVisibility {
+  id             String       @id @default(cuid())
+  organizationId String
+  productId      String
+  isPublic       Boolean      @default(false)
+  customPricing  Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, productId])
+  @@index([organizationId])
+  @@index([productId])
+}
+
+enum RelationshipStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  BLOCKED
+  ARCHIVED
+}
+
+enum RelationshipType {
+  GENERAL
+  SUPPLIER_BUYER
+  DISTRIBUTOR_RETAILER
+  PRODUCER_DISTRIBUTOR
+  COMPETITOR
+  PARTNER
+}
+
+enum PermissionType {
+  VIEW_PRODUCTS
+  VIEW_PRICES
+  VIEW_INVENTORY
+  PLACE_ORDERS
+  VIEW_ANALYTICS
+  VIEW_PROMOTIONS
+  VIEW_CONTACTS
+}
+
+enum PermissionScope {
+  ALL
+  SELECTED
+  NONE
+}
+
+enum InteractionType {
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  CONNECTION_REJECTED
+  ORDER_PLACED
+  MEETING_SCHEDULED
+  NOTE_ADDED
+  PERMISSION_CHANGED
+  MESSAGE_SENT
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}

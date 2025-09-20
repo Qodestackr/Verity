@@ -1,0 +1,94 @@
+model PricingRule {
+  id                String             @id @default(cuid())
+  organizationId    String
+  name              String
+  description       String?
+  productId         String
+  productName       String?
+  customerTier      CustomerTier       @default(ALL)
+  discountType      DiscountType       @default(PERCENTAGE)
+  basePrice         Float
+  status            PricingRuleStatus  @default(ACTIVE)
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean            @default(true)
+  priority          Int                @default(0)
+  saleorChannelId   String?
+  saleorPromotionId String?
+  lastSyncAt        DateTime?
+  usageCount        Int                @default(0)
+  totalRevenue      Float              @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  usage             PricingRuleUsage[]
+  tiers             PricingTier[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([customerTier])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model PricingTier {
+  id            String      @id @default(cuid())
+  pricingRuleId String
+  minQuantity   Int
+  maxQuantity   Int?
+  discountValue Float
+  unitPrice     Float
+  sortOrder     Int         @default(0)
+  isActive      Boolean     @default(true)
+  usageCount    Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  pricingRule   PricingRule @relation(fields: [pricingRuleId], references: [id], onDelete: Cascade)
+
+  @@index([pricingRuleId])
+  @@index([minQuantity])
+}
+
+model PricingRuleUsage {
+  id             String      @id @default(cuid())
+  pricingRuleId  String
+  customerId     String?
+  orderId        String?
+  quantity       Int
+  originalPrice  Float
+  discountAmount Float
+  finalPrice     Float
+  savings        Float
+  usedAt         DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  pricingRule    PricingRule @relation(fields: [pricingRuleId], references: [id], onDelete: Cascade)
+
+  @@index([pricingRuleId])
+  @@index([customerId])
+  @@index([usedAt])
+}
+
+enum CustomerTier {
+  ALL
+  SILVER
+  GOLD
+  PLATINUM
+  DISTRIBUTORS
+  WHOLESALERS
+  RETAILERS
+  VIP
+}
+
+enum PricingRuleStatus {
+  DRAFT
+  ACTIVE
+  SCHEDULED
+  PAUSED
+  EXPIRED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}

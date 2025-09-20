@@ -1,0 +1,221 @@
+model SalesTerritory {
+  id                String                 @id @default(cuid())
+  organizationId    String
+  name              String
+  code              String
+  description       String?
+  salesRepId        String?
+  salesRepName      String?
+  isActive          Boolean                @default(true)
+  boundaries        Json?
+  centerPoint       Json?
+  customerCount     Int                    @default(0)
+  activeCustomers   Int                    @default(0)
+  totalRevenue      Float                  @default(0)
+  monthlyRevenue    Float                  @default(0)
+  averageOrderValue Float                  @default(0)
+  conversionRate    Float                  @default(0)
+  lastActivityAt    DateTime?
+  performanceScore  Float                  @default(0)
+  riskLevel         TerritoryRiskLevel     @default(LOW)
+  competitorCount   Int                    @default(0)
+  marketPenetration Float                  @default(0)
+  growthRate        Float                  @default(0)
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  organization      Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  analytics         TerritoryAnalytics[]
+  customers         TerritoryCustomer[]
+  heatmapData       TerritoryHeatmap[]
+  opportunities     TerritoryOpportunity[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId])
+  @@index([salesRepId])
+  @@index([performanceScore])
+}
+
+model TerritoryCustomer {
+  id           String         @id @default(cuid())
+  territoryId  String
+  customerId   String
+  assignedAt   DateTime       @default(now())
+  isActive     Boolean        @default(true)
+  lastOrderAt  DateTime?
+  totalOrders  Int            @default(0)
+  totalRevenue Float          @default(0)
+  riskScore    Float          @default(0.5)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  customer     Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  territory    SalesTerritory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@unique([territoryId, customerId])
+  @@index([territoryId])
+  @@index([customerId])
+}
+
+model TerritoryAnalytics {
+  id                 String         @id @default(cuid())
+  territoryId        String
+  date               DateTime
+  revenue            Float          @default(0)
+  orderCount         Int            @default(0)
+  customerCount      Int            @default(0)
+  newCustomers       Int            @default(0)
+  averageOrderValue  Float          @default(0)
+  conversionRate     Float          @default(0)
+  topProductSku      String?
+  topProductRevenue  Float          @default(0)
+  competitorActivity Float          @default(0)
+  weatherImpact      Float?
+  eventImpact        Float?
+  marketSentiment    Float          @default(0.5)
+  createdAt          DateTime       @default(now())
+  territory          SalesTerritory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@unique([territoryId, date])
+  @@index([territoryId])
+  @@index([date])
+  @@index([revenue])
+}
+
+model TerritoryOpportunity {
+  id               String            @id @default(cuid())
+  territoryId      String
+  type             OpportunityType
+  title            String
+  description      String
+  confidence       Float
+  revenuePotential Float
+  effort           EffortLevel       @default(MEDIUM)
+  timeframe        String?
+  status           OpportunityStatus @default(IDENTIFIED)
+  assignedTo       String?
+  dueDate          DateTime?
+  completedAt      DateTime?
+  actualRevenue    Float?
+  metadata         Json?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  territory        SalesTerritory    @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@index([territoryId])
+  @@index([type])
+  @@index([status])
+  @@index([confidence])
+}
+
+model TerritoryHeatmap {
+  id          String         @id @default(cuid())
+  territoryId String
+  gridX       Int
+  gridY       Int
+  latitude    Float
+  longitude   Float
+  intensity   Float
+  metricType  String
+  value       Float
+  lastUpdated DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+  territory   SalesTerritory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@unique([territoryId, gridX, gridY, metricType])
+  @@index([territoryId])
+  @@index([metricType])
+}
+
+model SalesRepPerformance {
+  id                     String       @id @default(cuid())
+  organizationId         String
+  userId                 String
+  userName               String
+  territory              String?
+  date                   DateTime
+  messagesReceived       Int          @default(0)
+  messagesSent           Int          @default(0)
+  conversationsStarted   Int          @default(0)
+  conversationsCompleted Int          @default(0)
+  ordersCreated          Int          @default(0)
+  ordersConfirmed        Int          @default(0)
+  revenue                Float        @default(0)
+  aiInsightsUsed         Int          @default(0)
+  aiInsightsGenerated    Int          @default(0)
+  conversionRate         Float        @default(0)
+  averageResponseTime    Int?
+  customerSatisfaction   Float?
+  rank                   Int?
+  performanceScore       Float        @default(0)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, date])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([date])
+  @@index([performanceScore])
+}
+
+model SalesVisit {
+  id               String       @id @default(cuid())
+  outletId         String
+  salesPersonId    String
+  visitDate        DateTime
+  duration         Int?
+  purpose          VisitPurpose
+  orderPlaced      Boolean      @default(false)
+  orderValue       Float?
+  nextVisitDate    DateTime?
+  competitorInfo   Json?
+  marketInsights   String?
+  customerFeedback String?
+  outlet           Outlet       @relation(fields: [outletId], references: [id])
+  salesPerson      User         @relation(fields: [salesPersonId], references: [id])
+
+  @@index([outletId, visitDate])
+  @@index([salesPersonId, visitDate])
+}
+
+enum TerritoryRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OpportunityType {
+  NEW_CUSTOMER
+  UPSELL_EXISTING
+  CROSS_SELL
+  WIN_BACK_CUSTOMER
+  SEASONAL_PUSH
+  COMPETITOR_WEAKNESS
+  MARKET_EXPANSION
+  PRODUCT_LAUNCH
+}
+
+enum EffortLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum OpportunityStatus {
+  IDENTIFIED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+}
+
+enum VisitPurpose {
+  ROUTINE_CHECK
+  ORDER_COLLECTION
+  PAYMENT_COLLECTION
+  PRODUCT_DEMO
+  RELATIONSHIP_BUILDING
+  COMPLAINT_RESOLUTION
+  MARKET_RESEARCH
+}

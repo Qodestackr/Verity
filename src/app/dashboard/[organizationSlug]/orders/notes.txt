@@ -1,0 +1,7 @@
+
+/auto-reorders:
+- Add auto-reorders
+- Configure scheduling orders
+
+/Resolving variants cost prices (new arrivals differentiations)
+

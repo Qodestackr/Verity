@@ -1,0 +1,59 @@
+mutation CreateAttribute {
+  attributeCreate(
+    input: {
+      name: "Container Type"
+      type: PRODUCT_TYPE
+      inputType: DROPDOWN
+      values: [{ name: "Bottle" }, { name: "Can" }, { name: "Carton" }]
+    }
+  ) {
+    attribute {
+      id
+    }
+  }
+}
+
+mutation CreateAttribute {
+  attributeCreate(
+    input: {
+      name: "Brand"
+      type: PRODUCT_TYPE
+      inputType: DROPDOWN
+      values: [{ name: "Jameson" }, { name: "Heineken" }, { name: "Smirnoff" }] #.....
+    }
+  ) {
+    attribute {
+      id
+    }
+  }
+}
+
+mutation CreateAttribute {
+  attributeCreate(
+    input: {
+      name: "Alcohol Percentage"
+      type: PRODUCT_TYPE
+      inputType: DROPDOWN
+      values: [{ name: "4.2%" }, { name: "40%" }, { name: "12.5%" }] #.....
+    }
+  ) {
+    attribute {
+      id
+    }
+  }
+}
+
+mutation CreateAttribute {
+  attributeCreate(
+    input: {
+      name: "Brand"
+      type: PRODUCT_TYPE
+      inputType: NUMERIC
+      values: [{ name: "4.2%" }, { name: "40%" }, { name: "12.5%" }] #.....
+    }
+  ) {
+    attribute {
+      id
+    }
+  }
+}

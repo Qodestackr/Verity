@@ -1,0 +1,14 @@
+subscription OrderUpdated {
+  orderUpdated {
+    order {
+      id
+      status
+    }
+  }
+}
+
+subscription OrderCreatedSubscription {
+  event {
+    ...OrderCreatedWebhookPayload
+  }
+}

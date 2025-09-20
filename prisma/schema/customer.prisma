@@ -1,0 +1,223 @@
+model Customer {
+  id                  String                @id @default(cuid())
+  userId              String                @unique
+  organizationId      String
+  deliveryAddress     Json?
+  favoriteProducts    Json?
+  orderHistory        Json?
+  totalSpent          Float                 @default(0)
+  lastVisitDate       DateTime?
+  visits              Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  AIInsight           AIInsight[]
+  ConversationalOrder ConversationalOrder[]
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                User                  @relation(fields: [userId], references: [id])
+  CustomerCredit      CustomerCredit?
+  CustomerTierHistory CustomerTierHistory[]
+  loyaltyPoints       LoyaltyPoints?
+  onAccountBills      OnAccountBill[]
+  orders              Order[]
+  transactions        POSTransaction[]
+  PricingRuleUsage    PricingRuleUsage[]
+  TerritoryCustomer   TerritoryCustomer[]
+  voucherRedemptions  VoucherRedemption[]
+  wallet              Wallet?
+  whatsAppContact     WhatsAppContact[]
+
+  @@index([organizationId])
+}
+
+model CustomerTierHistory {
+  id            String        @id @default(cuid())
+  customerId    String
+  previousTier  CustomerTier?
+  newTier       CustomerTier
+  reason        String?
+  triggeredBy   String?
+  requirements  Json?
+  effectiveDate DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([effectiveDate])
+}
+
+model CustomerCredit {
+  id              String              @id @default(cuid())
+  customerId      String              @unique
+  creditLimit     Float               @default(0)
+  creditUsed      Float               @default(0)
+  creditAvailable Float               @default(0)
+  paymentTerms    Int                 @default(30)
+  riskScore       Float               @default(0.5)
+  lastAssessment  DateTime?
+  autoApproval    Boolean             @default(false)
+  isBlocked       Boolean             @default(false)
+  blockedReason   String?
+  blockedAt       DateTime?
+  overdueAmount   Float               @default(0)
+  daysPastDue     Int                 @default(0)
+  paymentHistory  Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  transactions    CreditTransaction[]
+  customer        Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([riskScore])
+  @@index([daysPastDue])
+}
+
+model CreditTransaction {
+  id               String                @id @default(cuid())
+  customerCreditId String
+  type             CreditTransactionType
+  amount           Float
+  description      String?
+  orderId          String?
+  paymentId        String?
+  balanceBefore    Float
+  balanceAfter     Float
+  dueDate          DateTime?
+  paidDate         DateTime?
+  status           CreditStatus          @default(PENDING)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  customerCredit   CustomerCredit        @relation(fields: [customerCreditId], references: [id], onDelete: Cascade)
+
+  @@index([customerCreditId])
+  @@index([type])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model LoyaltyPoints {
+  id             String              @id @default(cuid())
+  customerId     String              @unique
+  pointsEarned   Int                 @default(0)
+  pointsRedeemed Int                 @default(0)
+  currentBalance Int                 @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  version        Int                 @default(1)
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  pointsHistory  PointsTransaction[]
+
+  @@index([customerId])
+}
+
+model PointsTransaction {
+  id              String                @id @default(cuid())
+  loyaltyPointsId String
+  amount          Int
+  type            PointsTransactionType @default(EARNED)
+  sourceOrderId   String?
+  redeemedFrom    String?               @default("POS")
+  description     String?
+  createdAt       DateTime              @default(now())
+  loyaltyPoints   LoyaltyPoints         @relation(fields: [loyaltyPointsId], references: [id])
+
+  @@index([createdAt])
+}
+
+model OnAccountBill {
+  id                String              @id @default(cuid())
+  saleorOrderId     String              @unique
+  saleorOrderNumber String
+  customerId        String?
+  organizationId    String
+  totalAmount       Float
+  currency          String
+  status            OnAccountBillStatus @default(PENDING)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  customerNote      String?
+  lines             Json?
+  customer          Customer?           @relation(fields: [customerId], references: [id])
+
+  @@index([organizationId])
+  @@index([customerId])
+  @@index([status])
+}
+
+model BusinessProfile {
+  id                String        @id @default(cuid())
+  organizationId    String        @unique
+  shopName          String        @default("")
+  shopDescription   String?
+  shopCategory      ShopCategory
+  deliveryAreas     Json
+  deliveryHours     Json
+  minimumOrderValue Float         @default(0)
+  deliveryFee       Float         @default(0)
+  isOnlineShop      Boolean       @default(false)
+  shopUrl           String?
+  isLive            Boolean       @default(false)
+  isOpen            Boolean
+  isFeatured        Boolean?
+  isNew             Boolean?
+  promoText         String?
+  monthlyOrders     Int           @default(0)
+  averageRating     Float         @default(0)
+  totalReviews      Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  organization      Organization  @relation(fields: [organizationId], references: [id])
+  reviews           StoreReview[]
+}
+
+model StoreReview {
+  id              String           @id @default(uuid())
+  rating          Int
+  comment         String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  professionalism Int?
+  appearance      Int?
+  userId          String?
+  storeId         String?
+  store           BusinessProfile? @relation(fields: [storeId], references: [id])
+}
+
+enum CreditTransactionType {
+  CHARGE
+  PAYMENT
+  ADJUSTMENT
+  INTEREST
+  FEE
+  REFUND
+}
+
+enum CreditStatus {
+  PENDING
+  APPROVED
+  PAID
+  OVERDUE
+  WRITTEN_OFF
+}
+
+enum PointsTransactionType {
+  EARNED
+  REDEEMED
+  BONUS
+}
+
+enum OnAccountBillStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum ShopCategory {
+  LIQUOR_STORE
+  NIGHT_CLUB
+  BAR
+  RESTAURANT
+  HOTEL
+  SUPERMARKET
+  KFC
+  OTHER
+}

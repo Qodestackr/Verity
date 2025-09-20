@@ -1,0 +1,149 @@
+model CostCenter {
+  id            String           @id @default(cuid())
+  name          String
+  type          CostCenterType
+  parentId      String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  allocations   CostAllocation[]
+  parent        CostCenter?      @relation("CostCenterHierarchy", fields: [parentId], references: [id])
+  children      CostCenter[]     @relation("CostCenterHierarchy")
+  fixedCosts    FixedCost[]
+  marginAlerts  MarginAlert[]
+  variableCosts VariableCost[]
+}
+
+model FixedCost {
+  id            String     @id @default(cuid())
+  costCenterId  String
+  name          String
+  monthlyAmount Decimal    @db.Decimal(10, 2)
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime   @default(now())
+  costCenter    CostCenter @relation(fields: [costCenterId], references: [id])
+}
+
+model VariableCost {
+  id           String     @id @default(cuid())
+  costCenterId String
+  name         String
+  costPerUnit  Decimal    @db.Decimal(10, 4)
+  unitType     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  costCenter   CostCenter @relation(fields: [costCenterId], references: [id])
+}
+
+model SaleorOrderLine {
+  id          String           @id @default(cuid())
+  orderId     String
+  productId   String
+  variantId   String
+  productName String
+  variantName String?
+  quantity    Int
+  unitPrice   Decimal          @db.Decimal(10, 2)
+  totalPrice  Decimal          @db.Decimal(10, 2)
+  createdAt   DateTime         @default(now())
+  allocations CostAllocation[]
+  order       SaleorOrder      @relation(fields: [orderId], references: [id])
+}
+
+model CostAllocation {
+  id               String           @id @default(cuid())
+  orderId          String?
+  orderLineId      String?
+  costCenterId     String
+  costType         CostType
+  amount           Decimal          @db.Decimal(10, 4)
+  units            Decimal?         @db.Decimal(10, 4)
+  costPerUnit      Decimal?         @db.Decimal(10, 4)
+  allocationMethod AllocationMethod
+  allocationBasis  String?
+  calculatedAt     DateTime         @default(now())
+  source           String
+  costCenter       CostCenter       @relation(fields: [costCenterId], references: [id])
+  order            SaleorOrder?     @relation(fields: [orderId], references: [id])
+  orderLine        SaleorOrderLine? @relation(fields: [orderLineId], references: [id])
+}
+
+model UnitEconomics {
+  id               String      @id @default(cuid())
+  orderId          String      @unique
+  revenue          Decimal     @db.Decimal(10, 2)
+  discounts        Decimal     @db.Decimal(10, 2)
+  netRevenue       Decimal     @db.Decimal(10, 2)
+  cogs             Decimal     @db.Decimal(10, 2)
+  fuelCost         Decimal     @db.Decimal(10, 2)
+  driverCost       Decimal     @db.Decimal(10, 2)
+  vehicleCost      Decimal     @db.Decimal(10, 2)
+  depotCost        Decimal     @db.Decimal(10, 2)
+  breakageCost     Decimal     @db.Decimal(10, 2)
+  otherCosts       Decimal     @db.Decimal(10, 2)
+  totalCost        Decimal     @db.Decimal(10, 2)
+  grossMargin      Decimal     @db.Decimal(10, 2)
+  marginPercentage Decimal     @db.Decimal(5, 2)
+  costPerBottle    Decimal?    @db.Decimal(10, 4)
+  marginPerBottle  Decimal?    @db.Decimal(10, 4)
+  costPerKm        Decimal?    @db.Decimal(10, 4)
+  calculatedAt     DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  order            SaleorOrder @relation(fields: [orderId], references: [id])
+}
+
+model MarginAlert {
+  id           String        @id @default(cuid())
+  alertType    AlertType
+  severity     AlertSeverity
+  orderId      String?
+  costCenterId String?
+  title        String
+  message      String
+  threshold    Decimal?      @db.Decimal(10, 2)
+  actualValue  Decimal?      @db.Decimal(10, 2)
+  resolved     Boolean       @default(false)
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime      @default(now())
+  costCenter   CostCenter?   @relation(fields: [costCenterId], references: [id])
+  order        SaleorOrder?  @relation(fields: [orderId], references: [id])
+}
+
+enum CostCenterType {
+  DEPOT
+  ROUTE
+  VEHICLE
+  DRIVER
+}
+
+enum CostType {
+  FUEL
+  DRIVER_TIME
+  VEHICLE_DEPRECIATION
+  DEPOT_RENT
+  STORAGE
+  BREAKAGE
+  INSURANCE
+  MAINTENANCE
+}
+
+enum AllocationMethod {
+  DIRECT
+  PROPORTIONAL
+  ACTIVITY_BASED
+}
+
+enum AlertType {
+  LOW_MARGIN
+  HIGH_COST
+  ROUTE_INEFFICIENCY
+  CREDIT_RISK
+  STAGNANT_INVENTORY
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
