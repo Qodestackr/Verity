@@ -1,10 +1,4 @@
-# Alcorabooks Developer Guide
-
-<!--
->> SAFE RESTART SALOER: https://claude.ai/public/artifacts/81a01e29-c1aa-4153-84b9-59e8acd6c640
-docker compose up -d --no-deps api
-docker compose restart api
--->
+# Developer Guide
 
 ## Table of Contents
 
