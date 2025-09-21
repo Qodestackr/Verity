@@ -9,7 +9,6 @@ import {
     ArrowUpRight,
 } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { PromotionImpactDashboard } from "@/components/brand-owner/promotion-impact-dashboard"

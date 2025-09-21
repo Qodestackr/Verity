@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { CalendarIcon, Plus, Trash2, Info, ArrowRight, ArrowLeft, Percent, DollarSign, Tag } from "lucide-react"
 import { format } from "date-fns"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import z from "@/lib/zod";

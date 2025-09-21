@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { Calendar, TrendingUp, AlertTriangle, Download, RefreshCw, Loader2, CalendarIcon, Brain } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"

@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from 'lucide-react';
 import { DateRange } from "react-day-picker";
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"

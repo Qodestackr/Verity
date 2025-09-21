@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { ErrorCode } from "@/lib/globalTypes";
 
 export type AlertType = "error" | "success";

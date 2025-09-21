@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { cn } from "@/lib/utils"
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {

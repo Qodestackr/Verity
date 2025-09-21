@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { BaridiMarketingDashboard } from "@/components/marketing/baridi-marketing-dashboard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"

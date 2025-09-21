@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { useQuery } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import { ProfitLossReport } from "@/types/accounting"

@@ -1,5 +1,5 @@
 import pLimit from "p-limit";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { redis } from "@/lib/redis";
 import { executeMutation } from "@/lib/graphql-client";
 import {

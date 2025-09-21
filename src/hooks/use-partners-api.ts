@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { client } from "@/lib/auth-client"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"

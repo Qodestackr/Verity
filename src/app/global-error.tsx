@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import * as Sentry from "@sentry/nextjs";
 import NextError from "next/error";
 import { useEffect } from "react";

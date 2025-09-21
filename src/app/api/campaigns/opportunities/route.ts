@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { BaridiService } from "@/services/baridi-service"
 import { redis } from "@/lib/redis"
 import { auth } from "@/lib/auth"

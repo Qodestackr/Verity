@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Edit, Trash2, Calendar, Tag, Package, SettingsIcon } from 'lucide-react'
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import {
     Card,

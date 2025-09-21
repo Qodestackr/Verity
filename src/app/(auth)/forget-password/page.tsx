@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useForm } from "react-hook-form"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowRight, Mail, CheckCircle } from "lucide-react"
 import { toast } from "sonner"

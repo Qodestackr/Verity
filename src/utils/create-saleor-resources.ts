@@ -20,7 +20,6 @@ import {
   ChannelUpdateWarehousesDocument,
   ChannelWarehousesDocument,
 } from "@/gql/graphql";
-import { useCurrency } from "@/hooks/useCurrency";
 import { executeGraphQL, executeMutation } from "@/lib/graphql-client";
 import prisma from "@/lib/prisma";
 import { nanoid } from "nanoid";

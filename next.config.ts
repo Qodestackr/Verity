@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Access-Control-Allow-Origin",
-            value: "https://www.alcorabooks.com"
+            value: "https://www.getverity.com"
           },
           {
             key: "Access-Control-Allow-Methods",

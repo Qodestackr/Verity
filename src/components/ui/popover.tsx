@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"

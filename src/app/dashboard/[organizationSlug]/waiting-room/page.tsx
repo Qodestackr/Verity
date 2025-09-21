@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import ConnectionHub from "@/components/core/partnership/connection-hub"
 import { getOrganizationIdFromSlug } from "@/utils/organization"
 

@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 import cron from "node-cron";
 import { SubscriptionStatus } from "@prisma/client";

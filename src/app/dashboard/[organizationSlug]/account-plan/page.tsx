@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense } from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { SubscriptionPlans } from "@/components/subscriptions/subscription-plans"
 
 interface SubscriptionPageProps {

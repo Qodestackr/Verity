@@ -4,12 +4,11 @@ import {
   GetProductsForMeiliSearchDocument,
   GetProductsForMeiliSearchQueryVariables,
 } from "@/gql/graphql";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { gqlclient } from "@/lib/graphql";
 
 const MEILISEARCH_HOST = "https://search.alcorabooks.com";
-const MEILISEARCH_API_KEY =
-  "dd5e0bfa86569cdab356d3edb21328f233fd00ccda6d8fc555af6714d1e0345c";
+const MEILISEARCH_API_KEY = process.env.MEILISEARCH_API_KEY
 const INDEX_NAME = "test_products"; //"products";
 
 // Transform Saleor's base64 ID to MeiliSearch compatible ID
@@ -60,7 +59,7 @@ export async function GET() {
       const result = await gqlclient.query(GetProductsForMeiliSearchDocument, {
         first: 100,
         after,
-        channel: "alcora-admin", //"century-consults",
+        channel: "verity-admin", //"century-consults",
       });
 
       if (!result.data?.products?.edges) break;

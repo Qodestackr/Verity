@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 import crypto from "crypto";
 import { OrderStatus } from "@prisma/client";
@@ -150,7 +149,6 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper function to map Saleor order status to our internal status
-// WE WANT TO ENHANCE HOW DRIVERS MAKE ACTIONS WITHOUT COMPLETING THEM REALLY...
 function mapSaleorStatus(saleorStatus: string): string {
   switch (saleorStatus.toUpperCase()) {
     case "UNFULFILLED":

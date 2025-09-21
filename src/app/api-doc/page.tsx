@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { getApiDocs } from "@/lib/swagger";
 import ReactSwagger from "./react-swagger";
 import { Metadata } from "next";

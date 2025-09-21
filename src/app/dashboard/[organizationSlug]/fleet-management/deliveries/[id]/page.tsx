@@ -19,7 +19,7 @@ import {
     X,
     Camera,
 } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

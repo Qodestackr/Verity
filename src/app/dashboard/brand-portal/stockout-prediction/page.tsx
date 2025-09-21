@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { AlcoraIntelligenceCenter } from "@/components/brand-owner/stockout-prediction/alcora-intelligence-center"
 
 export default function BrandDashboardPage() {

@@ -1,5 +1,5 @@
 import { type MetadataRoute } from "next";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { APP_BASE_URL } from "@/config/urls";
 
 export const siteConfig = {

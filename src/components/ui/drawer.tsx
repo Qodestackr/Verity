@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { cn } from "@/lib/utils"
 
 function Drawer({

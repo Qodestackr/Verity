@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { executeGraphQL, executeMutation } from "@/lib/graphql-client";
 import {
   CheckoutCreateDocument,

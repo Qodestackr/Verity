@@ -8,7 +8,7 @@ import {
   CombinedError,
 } from "@urql/core";
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { persistedExchange } from "@urql/exchange-persisted";
 import { retryExchange } from "@urql/exchange-retry";
 import { authExchange } from "@urql/exchange-auth";

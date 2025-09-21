@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { ProductTable } from "@/components/products/product-management-table";
 
 export default function DashboardPage() {

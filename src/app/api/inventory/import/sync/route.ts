@@ -3,7 +3,7 @@ import {
   syncProductsToChannel,
   getChannelMappings,
 } from "@/lib/product-sync-automation";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { redis } from "@/lib/redis";
 import { APP_BASE_API_URL } from "@/config/urls";
 

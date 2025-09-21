@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
@@ -21,7 +21,7 @@ export async function GET(
         {
           status: 401,
           headers: {
-            "Access-Control-Allow-Origin": "https://www.alcorabooks.com",
+            "Access-Control-Allow-Origin": "https://www.getverity.com",
           },
         }
       );
@@ -35,7 +35,7 @@ export async function GET(
         {
           status: 400,
           headers: {
-            "Access-Control-Allow-Origin": "https://www.alcorabooks.com",
+            "Access-Control-Allow-Origin": "https://www.getverity.com",
           },
         }
       );
@@ -51,7 +51,7 @@ export async function GET(
         {
           status: 404,
           headers: {
-            "Access-Control-Allow-Origin": "https://www.alcorabooks.com",
+            "Access-Control-Allow-Origin": "https://www.getverity.com",
           },
         }
       );
@@ -74,7 +74,7 @@ export async function GET(
 
     return NextResponse.json(organization, {
       headers: {
-        "Access-Control-Allow-Origin": "https://www.alcorabooks.com",
+        "Access-Control-Allow-Origin": "https://www.getverity.com",
       },
     });
   } catch (error) {
@@ -92,7 +92,7 @@ export async function OPTIONS(req: NextRequest) {
     {},
     {
       headers: {
-        "Access-Control-Allow-Origin": "https://www.alcorabooks.com",
+        "Access-Control-Allow-Origin": "https://www.getverity.com",
         "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers":
           "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,Pragma",

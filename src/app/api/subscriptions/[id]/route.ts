@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 import { subscriptionService } from "@/services/subscription-service";
 import { auth } from "@/lib/auth";

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { getQueryParams, type QueryParams } from "@/utils/url";
 import { useEffect } from "react";
 

@@ -1,5 +1,5 @@
 import { ProductElement } from "./product-element";
-// import { useCurrency } from "@/hooks/useCurrency";
+// 
 import { type ProductListItemFragment } from "@/gql/graphql";
 
 export const ProductList = ({ products }: { products: readonly any/*ProductListItemFragment*/[] }) => {

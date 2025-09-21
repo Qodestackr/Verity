@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { cn } from "@/lib/utils"
 
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {

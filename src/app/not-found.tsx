@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowLeft, Warehouse, AlertCircle } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 
 const containerVariants = {
@@ -48,7 +47,7 @@ export default function NotFound() {
                 <div className="container flex h-16 items-center">
                     <Link href="/" className="flex items-center gap-2">
                         <Warehouse className="h-6 w-6 text-primary" />
-                        <span className="text-xl font-bold">Alcorabooks</span>
+                        <span className="text-xl font-bold">Verity</span>
                     </Link>
                 </div>
             </header>
@@ -113,7 +112,7 @@ export default function NotFound() {
             <footer className="border-t py-6 bg-muted/30">
                 <div className="container">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-sm text-muted-foreground">© 2025 Alcorabooks. All rights reserved.</p>
+                        <p className="text-sm text-muted-foreground">© 2025 GetVerity. All rights reserved.</p>
                         <div className="flex items-center gap-4">
                             <Link href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                                 Terms of Service

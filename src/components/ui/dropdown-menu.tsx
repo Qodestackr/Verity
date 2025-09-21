@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 

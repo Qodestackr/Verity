@@ -1,8 +1,8 @@
-# Alcorabooks Saleor GraphQL Guide
+# Getverity Saleor GraphQL Guide
 
 ## Overview
 
-This document provides a comprehensive guide to working with Saleor's GraphQL API in the Alcorabooks platform. It covers our GraphQL architecture, code generation approach, and best practices for extending and consuming the API.
+This document provides a comprehensive guide to working with Saleor's GraphQL API in the Getverity platform. It covers our GraphQL architecture, code generation approach, and best practices for extending and consuming the API.
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ This document provides a comprehensive guide to working with Saleor's GraphQL AP
 
 ## Architecture Overview
 
-Alcorabooks uses Saleor as its commerce engine with a custom relationship management layer. Our GraphQL implementation follows these principles:
+Getverity uses Saleor as its commerce engine with a custom relationship management layer. Our GraphQL implementation follows these principles:
 
 1. **Declarative Approach**: GraphQL operations are defined in separate `.graphql` files, not embedded in components
 2. **Code Generation**: TypeScript types are automatically generated from GraphQL schemas
@@ -612,7 +612,7 @@ Our approach to Saleor GraphQL offers several key benefits:
 5. **Performance**: Only request the fields you need through precise fragments
 6. **Role Specificity**: Operations are tailored to business roles (retailer, wholesaler, distributor)
 
-This architecture supports Alcorabooks's core value proposition of relationship management in the liquor distribution chain while leveraging Saleor's commerce capabilities.
+This architecture supports Getverity's core value proposition of relationship management in the liquor distribution chain while leveraging Saleor's commerce capabilities.
 
 ## Next Steps and Further Learning
 
@@ -624,6 +624,6 @@ To expand your understanding:
 
 ## Conclusion
 
-This guide should serve as your reference for working with the Alcorabooks GraphQL implementation. By following these patterns and best practices, you'll be able to efficiently build and maintain features across the entire distribution chain.
+This guide should serve as your reference for working with the Getverity GraphQL implementation. By following these patterns and best practices, you'll be able to efficiently build and maintain features across the entire distribution chain.
 
 Remember that our GraphQL approach mirrors the business domain - just as the liquor distribution chain has specific roles and relationships, our GraphQL operations are structured to reflect those business realities.

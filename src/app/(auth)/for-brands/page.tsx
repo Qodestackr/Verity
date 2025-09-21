@@ -16,7 +16,7 @@ import {
     TrendingUp,
 } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -43,7 +43,7 @@ export default function BrandLandingPage() {
                             </h1>
 
                             <p className="text-lg text-gray-600 mb-3 max-w-3xl mx-auto">
-                                Alcora gives brand owners unprecedented visibility and control over their entire distribution chain,
+                                Verity gives brand owners unprecedented visibility and control over their entire distribution chain,
                                 from warehouse to shelf.
                             </p>
 
@@ -75,7 +75,7 @@ export default function BrandLandingPage() {
                             <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
                                 <Image
                                     src="/placeholder.svg?height=600&width=1200"
-                                    alt="Alcora Brand Command Center Dashboard"
+                                    alt="Verity Brand Command Center Dashboard"
                                     width={1200}
                                     height={600}
                                     className="w-full h-auto"
@@ -170,7 +170,7 @@ export default function BrandLandingPage() {
                         <h2 className="text-3xl font-light mb-3">Ready to Transform Your Distribution Visibility?</h2>
                         <p className="text-lg text-emerald-100 mb-10 max-w-3xl mx-auto">
                             Join other leading brands who have gained unprecedented control over their distribution networks with
-                            Alcora.
+                            Verity.
                         </p>
 
                         <Button size="lg" className="bg-white text-emerald-700 hover:bg-gray-100 px-8" asChild>

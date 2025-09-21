@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 
 export const findUserById = async (userId: string) => {
@@ -83,18 +82,3 @@ export const removeUserById = async (userId: string) => {
 
   return deleted;
 };
-
-// Get Alcora base URL: NOT NEEDED UNLESS SOMEONE NEEDS OUR PLATFORM AS MANAGED INSTANCES
-// export const getAlcoraUrl = async () => {
-//   if (IS_CLOUD) {
-//     return "https://app.dokploy.com";
-//   }
-
-//   const admin = await findAdmin();
-
-//   if (admin.user.host) {
-//     return `https://${admin.user.host}`;
-//   }
-
-//   return `http://${admin.user.serverIp}:${process.env.PORT}`;
-// };

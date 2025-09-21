@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { WhatsAppShopSetup } from "@/components/core/online-shop/whatsapp/whatsapp-shop-setup"
 import { TypingEffect } from "@/components/marketing/typing-effect"
 

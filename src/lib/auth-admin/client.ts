@@ -3,7 +3,7 @@ import type { BetterAuthClientPlugin } from "better-auth/types";
 
 export const adminClient = () => {
   return {
-    id: "@alcora/admin-client",
+    id: "@verity/admin-client",
     $InferServerPlugin: {} as ReturnType<typeof admin>,
     pathMethods: {
       "/admin/list-users": "GET",

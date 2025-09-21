@@ -1,5 +1,5 @@
 import type { AuthContext } from "better-auth";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import type { Role } from "@/schemas/role";
 
 export const getAdminAdapter = (context: AuthContext) => {

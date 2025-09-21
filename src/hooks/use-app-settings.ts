@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { useSettingsStore } from "@/stores/app-settings-store";
 import { OrgSettings, UserSettings } from "@/types/app-settings";
 

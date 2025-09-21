@@ -1,6 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { useCurrency } from "@/hooks/useCurrency";
 import { createMetadata } from "@/lib/metadata";
 import { WrapperWithQuery } from "@/components/common/wrapper";
 import { ClientProviders } from "@/components/providers/client-providers";
@@ -23,8 +22,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = createMetadata({
   title: {
-    template: "%s | Alcorabooks",
-    default: "Alcorabooks",
+    template: "%s | Verity",
+    default: "Verity",
   },
   description: "Distribution. Distribution. Distribution",
   metadataBase: new URL(APP_BASE_URL),

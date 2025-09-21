@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronDown, ChevronRight, Clock, CreditCard, Gift, MapPin, Phone } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"

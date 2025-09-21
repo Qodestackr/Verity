@@ -4,7 +4,6 @@ import {
   CheckoutFindDocument,
   FindOrderDocument,
 } from "@/gql/graphql";
-import { useCurrency } from "@/hooks/useCurrency";
 import { executeGraphQL, executeMutation } from "@/lib/graphql-client";
 
 export async function getIdFromCookies(channel: string) {

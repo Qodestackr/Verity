@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import type { OrgSettings, UserSettings } from "@/types/app-settings";
 
 export const defaultOrgSettings: OrgSettings = {

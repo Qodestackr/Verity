@@ -15,7 +15,7 @@ import {
   ShippingZoneCreateInput,
   ShippingZoneDetailsFragment,
 } from "@/gql/graphql";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { slugify } from "@/utils/url";
 import { executeMutation } from "@/lib/graphql-client";
 

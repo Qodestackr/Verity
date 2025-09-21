@@ -11,7 +11,7 @@ import {
 // import { ac, admin, wholesaler, retailer, distributor } from "./permissions";
 
 import { toast } from "sonner";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import type { Auth, auth } from "@/lib/auth";
 // import { Auth } from "better-auth";
 

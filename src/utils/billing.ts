@@ -1,5 +1,4 @@
 import { lastDayOfMonth, getDate, setDate, subMonths } from "date-fns";
-import { useCurrency } from "@/hooks/useCurrency";
 import isServer from "@/utils/is-server";
 import prisma from "@/lib/prisma";
 

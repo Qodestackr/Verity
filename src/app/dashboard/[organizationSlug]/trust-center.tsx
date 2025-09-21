@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Card, CardContent } from "@/components/ui/card"
 import { ShieldCheck, Lock, Building2, DatabaseZap } from "lucide-react"
 

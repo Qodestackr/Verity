@@ -1,14 +1,13 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import type { LoyaltyCustomer } from "@/types/loyalty";
 import { LOYALTY_TIERS } from "@/config/loyalty";
 import prisma from "@/lib/prisma";
 
 const MEILISEARCH_HOST =
-  process.env.NEXT_PUBLIC_MEILISEARCH_URL || "https://search.alcorabooks.com";
+  process.env.NEXT_PUBLIC_MEILISEARCH_URL || "https://search.getverity.com";
 const MEILISEARCH_API_KEY =
   process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY ||
   "dd5e0bfa86569cdab356d3edb21328f233fd00ccda6d8fc555af6714d1e0345c";
-const INDEX_NAME = "alcora_customers";
+const INDEX_NAME = "verity_customers";
 
 /**
  * Ensures a customer is indexed in Meilisearch

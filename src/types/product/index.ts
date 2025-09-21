@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { ProductListQuery } from "@/gql/graphql";
 
 export interface SaleorProduct {

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Prisma, PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {

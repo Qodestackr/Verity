@@ -1,7 +1,6 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { type Attributes, type AttributeValue, type Span, trace, SpanStatusCode, SpanKind } from "@opentelemetry/api"
 
-const tracer = trace.getTracer("alcora-backend", "1.0.0")
+const tracer = trace.getTracer("verity-backend", "1.0.0")
 
 export async function traceSpan<T>(
     optionsOrDescription:
@@ -17,7 +16,7 @@ export async function traceSpan<T>(
         typeof optionsOrDescription === "string" ? { description: optionsOrDescription } : optionsOrDescription
 
     return await tracer.startActiveSpan(
-        `ALCORA: ${options.description}`,
+        `VERITY: ${options.description}`,
         {
             kind: options.kind || SpanKind.INTERNAL,
             attributes: options.attributes || {},

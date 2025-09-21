@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { searchEngine } from "@/utils/search-engine";
 import { ensureCustomerIndexed } from "@/utils/ensure-customer-indexed";
 import type { LoyaltyCustomer } from "@/types/loyalty";
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Search Meilisearch
     const hits = await searchEngine({
-      index: "alcora_customers",
+      index: "verity_customers",
       searchQuery: query,
       attributesToRetrieve: [
         "id",

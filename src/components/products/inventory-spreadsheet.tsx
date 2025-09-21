@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { Plus, Save, Trash2, Loader2, Search, CheckCircle, Package, Sparkles, Keyboard, Edit } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"

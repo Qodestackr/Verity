@@ -1,5 +1,5 @@
 import pLimit from "p-limit";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { redis } from "@/lib/redis";
 import { executeMutation } from "@/lib/graphql-client";
 import {
@@ -17,12 +17,8 @@ import {
 
 // Configuration
 const REDIS_PRODUCTS_KEY = "admin:products";
-const WAREHOUSE_ID =
-  "V2FyZWhvdXNlOjVhZmVlYWJjLWNjODMtNDUzNy1hY2IyLWRkNDRhNjJjOTc2Mg==";
-//   process.env.NEXT_PUBLIC_WAREHOUSE_ID ||
-//   "V2FyZWhvdXNlOjNlMTUwNDRiLWIyNGUtNDA1Mi1hNWY1LTVhOTI3MTE5M2I5Nw==";
-const DEFAULT_CHANNEL_ID = "Q2hhbm5lbDoz";
-//   process.env.NEXT_PUBLIC_SALEOR_CHANNEL_ID || "";
+const WAREHOUSE_ID =  process.env.NEXT_PUBLIC_WAREHOUSE_ID 
+const DEFAULT_CHANNEL_ID =  process.env.NEXT_PUBLIC_SALEOR_CHANNEL_ID
 
 // Types
 interface ProductData {

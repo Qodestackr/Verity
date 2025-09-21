@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import z from "@/lib/zod";
 import { APIError } from "better-auth/api";
 import { createAuthEndpoint, createAuthMiddleware } from "better-auth/plugins";

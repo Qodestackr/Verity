@@ -6,7 +6,6 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, X, ChevronDown, Heart, Clock, ThumbsUp, Wine, Sparkles, MapPin, Brain } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"

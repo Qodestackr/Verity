@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { redis } from "@/lib/redis";
 import z from "@/lib/zod";
 import { nanoid } from "nanoid";

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { redis } from "@/lib/redis";
 import type {
   BusinessType,

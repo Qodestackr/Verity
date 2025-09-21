@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 import { paymentService } from "./payment-service";
 import { format } from "date-fns";
@@ -188,7 +188,7 @@ export const invoiceService = {
     const margin = 50;
 
     // Draw company logo/header
-    page.drawText("Alcora", {
+    page.drawText("Verity", {
       x: margin,
       y: height - margin,
       size: 24,

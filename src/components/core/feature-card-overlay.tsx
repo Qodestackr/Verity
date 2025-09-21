@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ArrowRight, AlertCircle } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 
 interface FeatureCardOverlayProps {

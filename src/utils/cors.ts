@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
 const ALLOWED_ORIGINS = [
-    'https://www.alcorabooks.com',
-    'https://alcorabooks.com',
+    'https://www.getverity.com',
+    'https://getverity.com',
 ];
 
 const CORS_HEADERS = {
-    'Access-Control-Allow-Origin': 'https://www.alcorabooks.com',
+    'Access-Control-Allow-Origin': 'https://www.getverity.com',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,Pragma',
     'Access-Control-Allow-Credentials': 'true',

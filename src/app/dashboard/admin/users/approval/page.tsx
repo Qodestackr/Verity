@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { getUsersForApproval } from "@/actions/user";
 import UserApprovalList from "@/components/admin/user-approval-list"
 

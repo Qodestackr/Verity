@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { useCurrency } from "@/hooks/useCurrency";
 import { formatDate, getHrefForVariant } from "@/lib/utils";
 import { type OrderDetailsFragment } from "@/gql/graphql";
 import { LinkWithChannel } from "../core/channels/link-with-channel";

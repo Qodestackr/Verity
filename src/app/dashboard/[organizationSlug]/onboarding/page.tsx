@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Confetti from "react-confetti"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { useWindowSize } from "@/hooks/use-window-size"
 import { toast } from "sonner"
 import {

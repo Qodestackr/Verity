@@ -9,7 +9,6 @@ import {
   ProductTypeKindEnum,
   AttributeEntityTypeEnum,
 } from "@/gql/graphql";
-import { useCurrency } from "@/hooks/useCurrency";
 import { gqlclient } from "@/lib/graphql";
 import { executeGraphQL, executeMutation } from "@/lib/graphql-client";
 import { slugify } from "@/utils/url";

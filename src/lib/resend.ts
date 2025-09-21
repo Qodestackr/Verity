@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { ResendEmailOptions } from "@/types/email";
 import { Resend } from "resend";
 

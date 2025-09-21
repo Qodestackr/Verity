@@ -1,7 +1,6 @@
 "use client"
 import { useState, useEffect, SetStateAction } from "react"
 import { useRouter } from "next/navigation"
-import { useCurrency } from "@/hooks/useCurrency";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"

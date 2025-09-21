@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { useCurrency } from "@/hooks/useCurrency";
 import { APP_BASE_API_URL } from "@/config/urls";
 
 /**

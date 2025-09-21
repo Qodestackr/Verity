@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { type Checkout } from "@/gql/graphql";
 import { extractCheckoutIdFromUrl } from "@/utils/url";
 import { useEffect, useMemo } from "react";

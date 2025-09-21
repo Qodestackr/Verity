@@ -1,5 +1,5 @@
 "use client";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { AccountingOverview } from "@/components/accounting/accounting-overview"
 import { Construction, PercentDiamond, User2Icon, WeightIcon } from "lucide-react"
 import { FeatureCard } from "../page-client";

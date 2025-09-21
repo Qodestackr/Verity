@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "alcora",
+      name: "Verity",
       script: "pnpm",
       args: "start",
       instances: 1,
@@ -15,8 +15,8 @@ module.exports = {
       },
       max_restarts: 10,
       restart_delay: 3000,
-      error_file: "~/.pm2/logs/alcora-prod-error.log",
-      out_file: "~/.pm2/logs/alcora-prod-out.log",
+      error_file: "~/.pm2/logs/verity-prod-error.log",
+      out_file: "~/.pm2/logs/verity-prod-out.log",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm Z",
       ignore_watch: ["node_modules", "public"],

@@ -1,5 +1,5 @@
 import { type ReactNode } from "react";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { type TaxedMoney } from "@/gql/graphql";
 
 export interface Classes {

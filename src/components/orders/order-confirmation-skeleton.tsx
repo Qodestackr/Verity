@@ -1,4 +1,3 @@
-// import { useCurrency } from "@/hooks/useCurrency";
 import { SummarySkeleton } from "@/checkout/summary/summary-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 

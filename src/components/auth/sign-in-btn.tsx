@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { useCurrency } from "@/hooks/useCurrency";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Button } from "../ui/button";

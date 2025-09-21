@@ -1,5 +1,4 @@
 import queryString from "query-string";
-import { useCurrency } from "@/hooks/useCurrency";
 import { type CountryCode } from "@/gql/graphql";
 import { type MightNotExist } from "@/lib/globalTypes";
 

@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { LOYALTY_TIERS } from "@/config/loyalty";
 import { LoyaltyCustomer } from "@/types/loyalty";
 

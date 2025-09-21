@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Award, BadgePercent, Loader2, Check } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"

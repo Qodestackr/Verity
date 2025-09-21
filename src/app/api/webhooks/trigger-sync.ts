@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { APP_BASE_API_URL } from "@/config/urls";
 
 // 🔥 Trigger reindex IMMEDIATELY when webhook is received

@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { defaultCache } from "@serwist/next/worker";
 import type {
   PrecacheEntry,

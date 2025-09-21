@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { BarChart3, LineChart, PieChart, Download, Calendar, ArrowUpDown, Filter, RefreshCw, TrendingUp, TrendingDown, DollarSign, Package, Truck, Users, Clock, ArrowRight } from 'lucide-react'
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"

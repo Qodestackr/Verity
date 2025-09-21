@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Battery, MapPin, Navigation, RefreshCw, Settings, Thermometer, Truck, Wifi } from 'lucide-react'
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"

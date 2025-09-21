@@ -16,7 +16,6 @@ import {
     Zap,
 } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"

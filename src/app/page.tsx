@@ -14,7 +14,7 @@ import {
   Star,
   PlayCircle
 } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -153,7 +153,7 @@ export default function HomePage() {
             </motion.h1>
 
             <motion.p variants={fadeInUp} className="text-lg text-muted-foreground max-w-xl mx-auto">
-              Alcora connects the entire liquor supply chain with inventory management, smart logistics, built-in accounting,
+              Verity connects the entire liquor supply chain with inventory management, smart logistics, built-in accounting,
               and instant payments.
             </motion.p>
 
@@ -352,7 +352,7 @@ export default function HomePage() {
           {/* Bottom Footer */}
           <div className="border-t mt-8 pt-4 flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Alcorabooks. All rights reserved.
+              © {new Date().getFullYear()} Veritybooks. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-2 md:mt-0">
               <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
@@ -430,7 +430,7 @@ const features: any = {
 // ===== TESTIMONIALS DATA =====
 const testimonials = [
   {
-    quote: "Alcorabooks reduced our order processing time by 80% and eliminated stockouts completely. The real-time tracking is a game-changer!",
+    quote: "Veritybooks reduced our order processing time by 80% and eliminated stockouts completely. The real-time tracking is a game-changer!",
     name: "Alex Mwangi",
     role: "CEO, Nairobi Spirits",
     avatar: "/avatars/alex-mwangi.jpg",
@@ -439,11 +439,11 @@ const testimonials = [
     socialProof: {
       platform: "Twitter",
       handle: "@alexmwangi",
-      post: "Just switched to @Alcorabooks - our distribution network has never been smoother. Highly recommend! #LiquorTech"
+      post: "Just switched to @Veritybooks - our distribution network has never been smoother. Highly recommend! #LiquorTech"
     }
   },
   {
-    quote: "Our beer and spirits revenue grew by 42% in just 3 months thanks to Alcorabooks's inventory forecasting. The AI recommendations are scarily accurate.",
+    quote: "Our beer and spirits revenue grew by 42% in just 3 months thanks to Veritybooks's inventory forecasting. The AI recommendations are scarily accurate.",
     name: "Sarah Kariuki",
     role: "Operations Director, Coast Distributors",
     avatar: "/avatars/sarah-k.jpg",

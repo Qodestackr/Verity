@@ -1,6 +1,5 @@
 "use server";
 
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 import type { UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";

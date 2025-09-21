@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Search, User, Phone, X, Award, Loader2, UserPlus, ChevronRight } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"

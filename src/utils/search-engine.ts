@@ -18,9 +18,8 @@ export const searchEngine = async ({
   retries = 1,
 }: MeilisearchParams): Promise<any[]> => {
   const baseUrl =
-    process.env.NEXT_PUBLIC_MEILISEARCH_URL || "https://search.alcorabooks.com";
-  const apiKey =
-    "dd5e0bfa86569cdab356d3edb21328f233fd00ccda6d8fc555af6714d1e0345c";
+    process.env.NEXT_PUBLIC_MEILISEARCH_URL || "https://search.getverity.com";
+  const apiKey = process.env.MEILISEARCH_API_KEY
 
   const url = `${baseUrl}/indexes/${index}/search`;
 

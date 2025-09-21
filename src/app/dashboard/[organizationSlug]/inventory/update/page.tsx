@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import InventorySpreadsheet from "@/components/products/inventory-spreadsheet";
 
 export default function InventoryUpdatePage() {

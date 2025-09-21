@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { MEILISEARCH_URL } from "@/config/urls";
 import { MeiliSearch, Index } from "meilisearch";
 

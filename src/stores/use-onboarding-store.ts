@@ -2,7 +2,6 @@ import type React from "react";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { toast } from "sonner";
-import { useCurrency } from "@/hooks/useCurrency";
 import { APP_BASE_API_URL } from "@/config/urls";
 
 // Define types for form values
@@ -208,7 +207,7 @@ const useOnboardingStore = create<OnboardingState>()(
 
           // Show success message
           toast.success("Setup completed successfully!", {
-            description: "Your business is now ready to use Alcora.",
+            description: "Your business is now ready to use Verity.",
           });
 
           // Show confetti

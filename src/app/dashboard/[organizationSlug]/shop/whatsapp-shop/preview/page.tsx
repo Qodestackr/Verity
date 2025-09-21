@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { ShopPreview } from "@/components/core/online-shop/whatsapp/shop-preview"
 
 export const metadata: Metadata = {

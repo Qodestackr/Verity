@@ -1,5 +1,5 @@
 ---
-# 🧠 Executive Pitch: Embedding Financial Rails into Alcora
+# 🧠 Executive Pitch: Embedding Financial Rails into Verity
 
 ## 🚨 The Problem: Broken Finance for African SMEs
 
@@ -14,17 +14,17 @@ Today, a business owner in Africa juggles 5–7 financial tools just to operate:
 
 ---
 
-## 💡 Our Bet: Embed a Bank _at the Point of Sale_ via AlcoraPay
+## 💡 Our Bet: Embed a Bank _at the Point of Sale_ via VerityPay
 
 > "We embed financial intelligence directly at the transaction layer — turning every tap, scan, and sale into a financial moment that works _for_ the business."
 
-**Introducing AlcoraPay** — a powerful financial OS natively baked into our Alcora platform.
+**Introducing VerityPay** — a powerful financial OS natively baked into our Verity platform.
 
 ✅ **NFC Tap-to-Pay**: Businesses tap customer phones to accept payments directly — no terminal needed.
 
 ✅ **Instant Float Access**: During checkout, get _contextual credit_ ("Click to Borrow") based on current cash flow & risk profile
 
-✅ **Virtual Corporate Cards**: For restocking, deliveries, and utilities — controlled in real-time from the Alcora dashboard
+✅ **Virtual Corporate Cards**: For restocking, deliveries, and utilities — controlled in real-time from the Verity dashboard
 
 ✅ **Smart Wallets**: Store business earnings, split funds by tax, savings, and credit repayments
 
@@ -45,7 +45,7 @@ Today, a business owner in Africa juggles 5–7 financial tools just to operate:
 
 | Layer           | Stack                                                |
 | --------------- | ---------------------------------------------------- |
-| POS + Payments  | Alcora (Next.js/Remix + Saleor) + NFC SDK            |
+| POS + Payments  | Verity (Next.js/Remix + Saleor) + NFC SDK            |
 | Embedded Credit | Go Microservice + FastAPI AI agent for float scoring |
 | Wallet Ledger   | Go + Formance or custom ledger service               |
 | Card Issuing    | Toolbox API / Card issuing partner                   |
@@ -62,10 +62,8 @@ Today, a business owner in Africa juggles 5–7 financial tools just to operate:
 
 ---
 
-## 🔥 Closing Statement
-
 > We’re not just giving SMEs tools to run their business — we’re embedding the entire financial brain directly into their daily flows.
 
-Let’s make **AlcoraPay** the financial co-pilot for the African merchant.
+Let’s make **VerityPay** the financial co-pilot for the African merchant.
 
 ---

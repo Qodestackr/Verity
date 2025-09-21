@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { BudgetScenariosContent } from "@/components/accounting/budget/budget-scenarios-content"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,8 +23,8 @@ export default function BudgetScenariosPage() {
     const searchParams = useSearchParams()
 
     useEffect(() => {
-        const orgId = "VKa3oiRNrQS1wKxKg6t67EllAFUTyr6Z" //searchParams.get("organizationId") || "org_default"
-        const bId = "cma5b4bzm0009smggkitm8mi9"//searchParams.get("budgetId")
+        const orgId = searchParams.get("organizationId") || "org_default"
+        const bId = searchParams.get("budgetId")
 
         setOrganizationId(orgId)
         setBudgetId(bId)

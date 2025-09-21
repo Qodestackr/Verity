@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { APP_COMMERCE_URL } from "@/config/urls";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -32,8 +32,8 @@ async function generateSaleorToken() {
           }
         `,
         variables: {
-          email: "mcsystems2020@gmail.com",
-          password: "alcora@;F_@bN!$$",
+          email: "",
+          password: "",
         },
       }),
     });

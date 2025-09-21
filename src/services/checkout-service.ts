@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { executeGraphQL, executeMutation } from "@/lib/graphql-client";
 
 import {
@@ -43,7 +43,7 @@ export async function createPOSOrder(
     // Step 1: Create checkout
     const checkoutResult = await executeMutation(CheckoutCreateDocument, {
       variables: {
-        channel: "alcora-admin", //"century-consults",
+        channel: "verity-admin",
         email: customerPhone
           ? `${customerPhone}@pos.customer`
           : "pos-customer@example.com",

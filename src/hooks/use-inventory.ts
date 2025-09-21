@@ -1,5 +1,5 @@
 import { useQuery } from "urql";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { GetInventoryDocument } from "@/gql/graphql";
 
 export type InventoryItem = {

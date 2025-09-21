@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { COMMERCE_TOKEN_ENDPOINT } from "@/config/urls";
 
 let cachedToken: string | null = null;

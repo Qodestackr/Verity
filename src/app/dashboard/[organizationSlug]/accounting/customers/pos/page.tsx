@@ -23,7 +23,7 @@ import {
     ShoppingBag,
 } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"

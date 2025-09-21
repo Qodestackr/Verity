@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import type { UserRole } from "@prisma/client";
 import prisma from "./prisma";
 import { getStandardHeaders } from "@/utils/headers";
 import { auth } from "./auth";
 
 // Constants
-export const ALCORA_ADMIN_WORKSPACE_ID =
-  process.env.ALCORA_ADMIN_WORKSPACE_ID || "org_admin";
+export const VERITY_ADMIN_WORKSPACE_ID =
+  process.env.VERITY_ADMIN_WORKSPACE_ID
 
 export enum AdminAccessLevel {
   FULL = "FULL", // Complete admin access (admin role)
@@ -47,7 +47,7 @@ export const isAlcoraAdmin = async (userId: string): Promise<boolean> => {
     const adminMember = await prisma.member.findFirst({
       where: {
         userId,
-        organizationId: ALCORA_ADMIN_WORKSPACE_ID,
+        organizationId: VERITY_ADMIN_WORKSPACE_ID,
         role: "admin", // Ensure they have admin role in the admin org
       },
     });

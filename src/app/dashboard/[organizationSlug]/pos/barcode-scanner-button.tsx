@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { QrCode } from "lucide-react"

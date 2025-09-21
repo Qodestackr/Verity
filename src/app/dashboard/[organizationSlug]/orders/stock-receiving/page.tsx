@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { StockReceivingForm } from "@/components/orders/stock-receiving"
 
 export default function StockReceivingPage() {

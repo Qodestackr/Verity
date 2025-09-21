@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { FindOrderDocument, GetOrderFulfillmentDocument } from "@/gql/graphql";
 import { executeGraphQL } from "@/lib/graphql-client";
 

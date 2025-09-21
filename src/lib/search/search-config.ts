@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { meilisearchClient } from "@/lib/search/meilisearch-client";
 
 export async function configureSearchIndexes() {

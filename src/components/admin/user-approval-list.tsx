@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Check, X, ChevronRight, UserCog, Search, ChevronLeft } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"

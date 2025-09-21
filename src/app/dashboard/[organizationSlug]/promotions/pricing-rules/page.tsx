@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { PlusCircle } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { PricingRulesList } from "@/components/payments/pricing-rules-list"
 

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import AdminFeatureCards from "@/components/admin/admin-feature-cards"
 
 export default function AdminDashboardPage() {

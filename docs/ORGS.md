@@ -1,4 +1,4 @@
-# Alcorabooks Business Units Documentation
+# Getverity Business Units Documentation
 
 ## What Are Business Units?
 

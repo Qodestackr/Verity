@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import crypto from "crypto";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 
 import { redis } from "@/lib/redis";

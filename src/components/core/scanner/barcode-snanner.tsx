@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from "react"
 import Quagga from '@ericblade/quagga2'
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"

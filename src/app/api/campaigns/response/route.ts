@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { BaridiService } from "@/services/baridi-service"
 
 // Handle customer response to campaign (webhook from WhatsApp/Facebook)

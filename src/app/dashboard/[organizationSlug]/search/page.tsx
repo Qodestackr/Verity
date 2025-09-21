@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Pagination as ProductsPagination } from "@/components/products/pagination"
 import { ProductList } from "@/components/products/product-list"
 import { SearchProductsSortedDocument, ProductOrderField, OrderDirection } from "@/gql/graphql"

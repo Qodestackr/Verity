@@ -1,6 +1,6 @@
 "use client";
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button";
 import {
 	Card,

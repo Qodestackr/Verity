@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ShoppingBag, Save, Receipt, Trash2, Plus, Minus } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { useDraftOrderStore } from "@/stores/use-draft-order-store"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

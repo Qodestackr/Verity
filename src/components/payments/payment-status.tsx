@@ -1,5 +1,5 @@
 import { AlertCircleIcon, CheckCircleIcon, ClockIcon, XCircle } from "lucide-react";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { PaymentChargeStatusEnum } from "@/gql/graphql";
 
 type Props = {

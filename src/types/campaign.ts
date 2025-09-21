@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { Organization } from "@prisma/client"
 
 export enum EventType {

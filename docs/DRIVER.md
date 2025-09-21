@@ -3,59 +3,18 @@ BUSINESS TRACKS DRIVER ACTIVITIES IN /shipments.
 <!--
 ✅ /shipments is the Right Home For:
 Driver assignments: Who is delivering what and when
-
 Delivery progress: Real-time status (e.g. en route, delivered, failed, returned)
-
 Proof of delivery (POD): Signatures, photos, or notes attached to a shipment
-
 Exception handling: Missed deliveries, issues, reroutes, etc.
-
 Route performance analytics: Completion time, delays, efficiency
-
 Driver logs: Activity per route/stop, rest periods, check-ins
 -->
 
 <!--
- Alcora Premium – The Chef’s Table
 "Your data is encrypted in motion and at rest."
-
 "Access is scoped by role, channel, and warehouse."
-
 "Only your business units see what they’re allowed to see."
-
 "We log everything, but only you own the audit trail."
-
-🍷 Result:
-
-Transparency becomes a superpower.
-
-Historical delivery logs enable dispute resolution.
-
-Route and performance analytics save 10–20% in logistics waste.
-
-Better data → better credit → lower financing cost.
-
-No more 'he said, she said' — just a provable trail.
-
-🧠 Your Real Product Isn’t the UI — It’s Trust Infrastructure
-You're offering:
-
-Data visibility with guardrails
-
-Ownership without lock-in
-
-Efficiency that feels like superpowers
-
-A framework to scale without losing grip
-
-So yeah — it sniffs everything.
-Not to spy. To serve.
-
-And the real question is:
-
-“Do you want to stay suspicious and stagnant, or do you want to scale with confidence?”
-
-
 -->
 
 # B2B Liquor Distribution Platform: Implementation Strategy

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import {

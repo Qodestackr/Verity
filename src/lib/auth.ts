@@ -12,7 +12,7 @@ import {
   createAuthMiddleware,
 } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 
 import { mapUserRoleToBusiness } from "@/lib/role-management";

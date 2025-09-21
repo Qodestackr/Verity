@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { debugToken } from "@/lib/saleor-token-manager";
 
 export async function GET(req: NextRequest) {

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { SmartForecasting } from "@/components/inventory/smart-forecasting"
 import type { Metadata } from "next"
 

@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { resend } from "@/lib/resend";
 
 // Email notifications

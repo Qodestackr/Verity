@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { LinkWithChannel } from "@/components/core/channels/link-with-channel";
 
 export async function Pagination({

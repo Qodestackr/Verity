@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -13,7 +13,6 @@ export default function ConsentPage() {
         try {
             // TODO: Implement consent submission to BetterAuth
             console.log("User consent:", granted);
-        } catch (error) {
             console.error("Consent error:", error);
         } finally {
             setLoading(false);

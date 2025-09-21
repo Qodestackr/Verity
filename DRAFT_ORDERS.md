@@ -1,8 +1,8 @@
-# Alcora Draft Orders Strategy Guide
+# Verity Draft Orders Strategy Guide
 
 ### 🎯 Vision Statement
 
-Alcora leverages Saleor's Draft Orders as the foundation for conversational commerce, enabling seamless B2B and B2C transactions in Kenya's liquor market. Our approach treats Draft Orders as "working state" - a staging ground where AI agents and human sales reps can build, modify, and perfect orders without touching inventory until commitment.
+Verity leverages Saleor's Draft Orders as the foundation for conversational commerce, enabling seamless B2B and B2C transactions in Kenya's liquor market. Our approach treats Draft Orders as "working state" - a staging ground where AI agents and human sales reps can build, modify, and perfect orders without touching inventory until commitment.
 
 ### 🧠 Core Philosophy: "Draft-First Commerce"
 
@@ -12,10 +12,6 @@ Alcora leverages Saleor's Draft Orders as the foundation for conversational comm
 - **Orders** = Commitment, inventory movement, fulfillment
 - **Returns/Cancellations** = Always handled on confirmed Orders, never drafts
 
----
-
-<!-- Easily Confirm a Quote to an Order, [Everything is a Draft Until Confirmed in B2C space] -->
-<!--  -->
 
 ## 🏗️ Architecture Overview
 
@@ -194,7 +190,7 @@ mutation CompleteDraftOrder($id: ID!) {
 }
 ```
 
-### Metadata Schema for Alcora
+### Metadata Schema for Verity
 
 Every Draft Order should include rich metadata:
 
@@ -256,7 +252,7 @@ Make these tied to metadata like: last_modified, customer_type, context_event_ty
 ### Python Service Layer Example
 
 ```python
-class AlcoraDraftService:
+class VerityDraftService:
     def __init__(self, saleor_client):
         self.client = saleor_client
 
@@ -440,7 +436,7 @@ function useDraftOrder(customerId: string) {
 
   const createDraft = async (context = {}) => {
     setLoading(true);
-    const newDraft = await alcora.drafts.create({
+    const newDraft = await Verity.drafts.create({
       customerId,
       source: "web",
       context,
@@ -453,7 +449,7 @@ function useDraftOrder(customerId: string) {
   const addProduct = async (variantId: string, quantity: number) => {
     if (!draft) return;
 
-    const updated = await alcora.drafts.addLine(draft.id, {
+    const updated = await Verity.drafts.addLine(draft.id, {
       variantId,
       quantity,
     });
@@ -463,7 +459,7 @@ function useDraftOrder(customerId: string) {
   const checkout = async () => {
     if (!draft) return;
 
-    const order = await alcora.drafts.convert(draft.id);
+    const order = await Verity.drafts.convert(draft.id);
     setDraft(null); // Clear draft after conversion
     return order;
   };
@@ -488,7 +484,7 @@ function useDraftOrder(customerId: string) {
 ```
 Draft Created: "I've started building your order! You can modify it anytime."
 Draft Updated: "Added 3x Tusker to your order. Current total: KSh 2,400"
-Draft Saved: "Your order is saved. Continue anytime at alcorabooks.com/order-123"
+Draft Saved: "Your order is saved. Continue anytime at getverity.com/order-123"
 Draft Converted: "Order confirmed! KSh 2,400 charged. Delivery in 2-4 hours."
 ```
 
@@ -594,9 +590,9 @@ export AI_SERVICE_URL="https://your-ai-service.com"
 ### Quick Start
 
 ```bash
-# Clone the Alcora repository
-git clone https://github.com/your-org/alcora.git
-cd alcora
+# Clone the Verity repository
+git clone https://github.com/your-org/Verity.git
+cd Verity
 
 # Install dependencies
 npm install && pip install -r requirements.txt
@@ -626,6 +622,6 @@ curl -X POST http://localhost:8000/api/drafts \
 
 ---
 
-**Built with ❤️ for the Kenyan market by the Alcora team**
+**Built with ❤️ for the Kenyan market by the Verity team**
 
 _"Revolutionizing liquor commerce, one conversation at a time."_

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { BudgetForecast } from "@/components/accounting/budget/budget-forecast"
 
 export default function BudgetForecastPage() {

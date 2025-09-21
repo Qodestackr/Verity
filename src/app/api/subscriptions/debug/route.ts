@@ -1,6 +1,6 @@
 // Debug endpoint checking what's in db
 import { type NextRequest, NextResponse } from "next/server"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {

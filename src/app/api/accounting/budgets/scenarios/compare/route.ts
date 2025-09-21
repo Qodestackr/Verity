@@ -1,11 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 import { redis } from "@/lib/redis";
 import { auth } from "@/lib/auth";
 import { getStandardHeaders } from "@/utils/headers";
 
-// Compare multiple scenarios
 export async function POST(request: NextRequest) {
   try {
     const standardHeaders = await getStandardHeaders();

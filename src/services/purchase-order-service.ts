@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { executeMutation } from "@/lib/graphql-client";
 
 import {

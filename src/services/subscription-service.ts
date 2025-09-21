@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 import { invoiceService } from "./invoice-service";
 import { addDays, addMonths, addYears } from "date-fns";

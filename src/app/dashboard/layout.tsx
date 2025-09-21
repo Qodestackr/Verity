@@ -3,7 +3,7 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { usePathname, useParams } from "next/navigation"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import OnboardingWidget from "@/components/core/onboarding-widget"
 import OnboardingBlocker from "@/components/core/onboarding-blocker"
 import { AlcorabooksSidebar } from "@/components/common/sidebar"

@@ -10,7 +10,6 @@ import {
     CardDescription,
     CardFooter
 } from "@/components/ui/card";
-import { useCurrency } from "@/hooks/useCurrency";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";

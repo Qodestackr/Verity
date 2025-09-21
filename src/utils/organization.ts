@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import prisma from "@/lib/prisma";
 
 // Cache for organization data to reduce database queries

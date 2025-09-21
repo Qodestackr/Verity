@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Calendar, CheckCircle, Clock, Loader2 } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -74,7 +74,7 @@ export default function ScheduleDemoPage() {
                     <CardHeader className="border-b border-gray-100 bg-gray-50">
                         <CardTitle className="text-2xl font-light text-emerald-800">Schedule a Demo</CardTitle>
                         <CardDescription>
-                            Select a date and time for a personalized walkthrough of Alcora's Brand Command Center
+                            Select a date and time for a personalized walkthrough of Verity's Brand Command Center
                         </CardDescription>
                     </CardHeader>
 
@@ -196,7 +196,7 @@ export default function ScheduleDemoPage() {
                                 </div>
 
                                 <p className="text-gray-600 mb-6">
-                                    We've sent a calendar invitation to your email. Our team is looking forward to showing you how Alcora
+                                    We've sent a calendar invitation to your email. Our team is looking forward to showing you how Verity
                                     can transform your distribution visibility.
                                 </p>
 

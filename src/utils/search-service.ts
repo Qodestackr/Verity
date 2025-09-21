@@ -1,4 +1,3 @@
-import { useCurrency } from "@/hooks/useCurrency";
 import { Product, ProductVariant } from "@/gql/graphql";
 import { meilisearchClient } from "@/lib/search/meilisearch-client";
 

@@ -29,9 +29,9 @@
 
 - We've pointed Alcora domain to VPS IP address
 - Configure subdomains:
-  - `commerce.alcorabooks.com` → Saleor API
+  - `commerce.getverity.com` → Saleor API
   - `IP_ADDRESS_WITH_PORT` → Saleor Dashboard
-  - `shop.alcorabooks.com"` → Storefront
+  - `shop.getverity.com"` → Storefront
 
 ## System Preparation
 

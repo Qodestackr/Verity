@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document outlines the design choices and concepts around managing inventory in a multi-warehouse setup for the Alcorabooks platform. It explains the differences between warehouse management approaches and provides examples of GraphQL queries used to query inventory data.
+This document outlines the design choices and concepts around managing inventory in a multi-warehouse setup for the Getverity platform. It explains the differences between warehouse management approaches and provides examples of GraphQL queries used to query inventory data.
 
 ## Key Concepts
 

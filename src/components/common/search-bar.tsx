@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { SearchIcon } from "lucide-react";
-import { useCurrency } from "@/hooks/useCurrency";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

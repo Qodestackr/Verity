@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { getOrganizationIdFromSlug } from "@/utils/organization"
 import { PlaceOrdersClient } from "./page-client"
 import { unstable_cache } from "next/cache"

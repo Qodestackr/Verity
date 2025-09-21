@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { PricingRuleForm } from "@/components/payments/pricing-rule-form";
 
 export default function NewPricingRule() {

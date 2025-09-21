@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { useCurrency } from "@/hooks/useCurrency";
 import type { OrgSettings, UserSettings } from "@/types/app-settings";
 
 interface SettingsStore {

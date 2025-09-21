@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { InvoiceDetails } from "@/components/accounting/invoice-details"
 
 export const metadata: Metadata = {

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { ExpenseTable } from "@/components/expenses/expense-table"
 import { ExpenseDialog } from "@/components/expenses/expense-dialog"
 import { Button } from "@/components/ui/button"

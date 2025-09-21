@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { resend } from "@/lib/resend";
 import { redis } from "./redis";
 import { type Account, type Session, type User, type GenericEndpointContext, betterAuth, type BetterAuthOptions } from "better-auth";

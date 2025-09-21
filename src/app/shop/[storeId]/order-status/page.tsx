@@ -1,11 +1,9 @@
-// ORDER STATUS NEEDS AN ID: https://v0.dev/chat/kenyan-market-ui-design-yc2BoRivfrU
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, HelpCircle, MessageCircle, Phone } from "lucide-react"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Avatar } from "@/components/ui/avatar"

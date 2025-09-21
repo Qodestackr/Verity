@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { createPaginatedResponse, withApiWrapper, withValidation } from "@/lib/api-wrapper"
 import prisma from "@/lib/prisma"
 import { dbTrace, logger } from "@/utils/telemetry"

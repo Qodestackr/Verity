@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import BusinessAddProductManagement from "@/components/products/business-add-products/product-management";
 
 export default function BusinessAddNewProduct() {

@@ -1,4 +1,4 @@
-import { useCurrency } from "@/hooks/useCurrency";
+
 import SalesSummaryDashboard from "@/components/accounting/sales/sales-summary-dashboard"
 
 export default function SalesSummaryPage() {

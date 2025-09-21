@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

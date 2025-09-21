@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Building2, CheckCircle, Loader2, Mail, Phone, User } from "lucide-react"
 
-import { useCurrency } from "@/hooks/useCurrency";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -66,7 +66,7 @@ export default function RequestAccessPage() {
                 <Card className="border-gray-200 shadow-lg">
                     <CardHeader className="border-b border-gray-100 bg-gray-50">
                         <CardTitle className="text-2xl font-light text-emerald-800">Get Enterprise Access</CardTitle>
-                        <CardDescription>Complete this form to request VIP access to Alcora's Brand Command Center</CardDescription>
+                        <CardDescription>Complete this form to request VIP access to Verity's Brand Command Center</CardDescription>
                     </CardHeader>
 
                     <CardContent className="pt-6">
@@ -278,7 +278,7 @@ export default function RequestAccessPage() {
 
                                 <h3 className="text-2xl font-medium text-gray-900 mb-2">Request Received</h3>
                                 <p className="text-gray-600 mb-6">
-                                    Thank you for your interest in Alcora's Brand Command Center. Our enterprise team will contact you
+                                    Thank you for your interest in Verity's Brand Command Center. Our enterprise team will contact you
                                     within 24 hours.
                                 </p>
 

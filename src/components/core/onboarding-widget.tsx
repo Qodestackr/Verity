@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { CheckCircle, ChevronRight, X } from 'lucide-react'
-import { useCurrency } from "@/hooks/useCurrency";
+import { CheckCircle, ChevronRight, X } from 'lucide-
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { useCurrency } from "@/hooks/useCurrency";
+
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getStandardHeaders } from "@/utils/headers";
